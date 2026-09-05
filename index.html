@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<title>声で勝負！英単語バトル</title>
+<title>声単 こえたん｜ことば駅伝</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -104,12 +104,74 @@ input[type=checkbox]{width:20px;height:20px;vertical-align:-4px;accent-color:var
 .wave.live i:nth-child(4){animation-delay:.36s}.wave.live i:nth-child(5){animation-delay:.48s}
 @keyframes w{0%,100%{height:5px}50%{height:17px}}
 
-.combo{position:fixed;left:50%;top:26%;transform:translate(-50%,-50%) scale(.6);opacity:0;
-  font-size:44px;font-weight:900;color:var(--acc2);text-shadow:0 4px 24px rgba(0,0,0,.6);pointer-events:none;z-index:60}
-.combo.pop{animation:pop .7s ease-out}
-@keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}
-  22%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}
-  100%{opacity:0;transform:translate(-50%,-90%) scale(1)}}
+/* ---------- ことば駅伝：コース ---------- */
+.course{position:relative;height:132px;margin:8px 0 10px;border-radius:16px;overflow:hidden;
+  border:1px solid var(--line);
+  background:linear-gradient(#0d1730 0%,#1a2856 46%,#22315f 52%,#151d38 53%,#151d38 100%)}
+.c-layer{position:absolute;left:0;right:0;background-repeat:repeat-x;pointer-events:none}
+.c-far{bottom:44px;height:58px;background-size:150px 58px;
+  background-image:radial-gradient(circle at 50% 100%, #223260 0 52px, transparent 53px)}
+.c-mid{bottom:44px;height:38px;background-size:78px 38px,78px 38px;background-position:0 0,0 0;
+  background-image:radial-gradient(circle at 14px 13px, #2f6b4c 0 11px, transparent 12px),
+                   linear-gradient(90deg, transparent 0 13px, #4a3520 13px 16px, transparent 16px)}
+.c-road{position:absolute;left:0;right:0;bottom:0;height:44px;background:#232a45;border-top:2px solid #3c4573}
+.c-lane{position:absolute;left:0;right:0;top:19px;height:3px;background-repeat:repeat-x;
+  background-size:54px 3px;background-image:linear-gradient(90deg,#5c6796 0 27px, transparent 27px)}
+.c-posts{position:absolute;inset:0;pointer-events:none}
+.c-post{position:absolute;bottom:44px;width:2px;height:20px;background:#7984b6;display:none}
+.c-post b{position:absolute;bottom:20px;left:-20px;width:42px;text-align:center;
+  font-size:9px;font-weight:800;color:#98a2c8;letter-spacing:.02em}
+.c-dist{position:absolute;right:8px;top:6px;font-size:13px;font-weight:900;color:#dfe6ff;
+  background:rgba(9,13,28,.62);border-radius:9px;padding:2px 8px}
+.c-baton{position:absolute;left:50%;top:8px;transform:translateX(-50%) scale(.7);opacity:0;
+  font-size:14px;font-weight:900;color:#241000;background:var(--acc2);border-radius:10px;
+  padding:3px 12px;white-space:nowrap;pointer-events:none}
+.c-baton.pop{animation:baton 1.1s ease-out}
+@keyframes baton{0%{opacity:0;transform:translateX(-50%) scale(.7)}
+  18%{opacity:1;transform:translateX(-50%) scale(1.06)}
+  72%{opacity:1;transform:translateX(-50%) scale(1)}
+  100%{opacity:0;transform:translateX(-50%) scale(1)}}
+
+.c-run{position:absolute;bottom:10px;width:36px;height:54px;margin-left:-18px;left:32%}
+.c-run.ghost{opacity:.40}
+.c-run .lab{position:absolute;top:-13px;left:50%;transform:translateX(-50%);
+  font-size:10px;font-weight:800;white-space:nowrap;color:#b9c2e6}
+.r-body{position:absolute;left:0;top:2px;width:36px;height:52px;animation:bob .42s linear infinite}
+.r-head{position:absolute;left:11px;top:0;width:14px;height:14px;border-radius:50%;background:#ffdcbb}
+.r-torso{position:absolute;left:15px;top:13px;width:6px;height:20px;border-radius:3px;background:var(--rc,#5ad1ff)}
+.r-sash{position:absolute;left:10px;top:15px;width:17px;height:4px;border-radius:2px;
+  background:var(--sc,#ffd166);transform:rotate(36deg);transform-origin:2px 50%}
+.r-arm{position:absolute;left:16px;top:15px;width:4px;height:15px;border-radius:2px;
+  background:var(--rc,#5ad1ff);transform-origin:50% 2px}
+.r-leg{position:absolute;left:16px;top:31px;width:4px;height:19px;border-radius:2px;
+  background:#e6ebff;transform-origin:50% 2px}
+.r-arm.a,.r-leg.b{animation:limbA .42s linear infinite}
+.r-arm.b,.r-leg.a{animation:limbB .42s linear infinite}
+@keyframes limbA{0%,100%{transform:rotate(32deg)}50%{transform:rotate(-34deg)}}
+@keyframes limbB{0%,100%{transform:rotate(-34deg)}50%{transform:rotate(32deg)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+.c-run.dash .r-body,.c-run.dash .r-arm,.c-run.dash .r-leg{animation-duration:.24s}
+.r-speed{position:absolute;right:34px;top:14px;width:40px;height:26px;opacity:0;transition:opacity .2s}
+.c-run.dash .r-speed{opacity:1}
+.r-speed i{position:absolute;right:0;height:2px;border-radius:2px;background:rgba(255,255,255,.6);
+  animation:zip .38s linear infinite}
+.r-speed i:nth-child(1){top:2px;width:26px}
+.r-speed i:nth-child(2){top:10px;width:38px;animation-delay:.12s}
+.r-speed i:nth-child(3){top:18px;width:20px;animation-delay:.24s}
+@keyframes zip{0%{opacity:0;transform:translateX(10px)}30%{opacity:1}100%{opacity:0;transform:translateX(-14px)}}
+@media (prefers-reduced-motion:reduce){
+  .r-body,.r-arm,.r-leg,.r-speed i{animation:none!important}
+}
+
+.c-combo{position:absolute;left:50%;bottom:50px;transform:translateX(-50%) scale(.8);opacity:0;
+  font-size:15px;font-weight:900;color:#241000;white-space:nowrap;pointer-events:none;
+  background:linear-gradient(180deg,#ffe08a,#ffc23d);border-radius:999px;padding:3px 13px;
+  box-shadow:0 3px 12px rgba(0,0,0,.45)}
+.c-combo.pop{animation:cpop 1.05s ease-out}
+@keyframes cpop{0%{opacity:0;transform:translateX(-50%) scale(.8)}
+  15%{opacity:1;transform:translateX(-50%) scale(1.12)}
+  70%{opacity:1;transform:translateX(-50%) translateY(-12px) scale(1)}
+  100%{opacity:0;transform:translateX(-50%) translateY(-22px) scale(1)}}
 
 .wlist{margin:10px 0}
 .wrow{display:flex;align-items:center;gap:10px;background:#131931;border:1px solid var(--line);
@@ -140,8 +202,11 @@ input[type=checkbox]{width:20px;height:20px;vertical-align:-4px;accent-color:var
   font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:90;max-width:90vw;text-align:center}
 .toast.on{opacity:1;transform:translateX(-50%)}
 .big3{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+  flex-direction:column;gap:6px;text-align:center;
   background:rgba(8,11,24,.94);z-index:80;font-size:22vw;font-weight:900;color:var(--acc)}
 .big3.on{display:flex}
+.big3.msg{font-size:clamp(26px,7vw,42px);color:var(--acc2);padding:0 20px}
+.big3.msg small{font-size:clamp(15px,4vw,20px);color:var(--fg);font-weight:700}
 .hide{display:none!important}
 ol,ul{padding-left:1.3em;margin:.4em 0}
 li{margin:.35em 0}
@@ -152,8 +217,9 @@ li{margin:.35em 0}
 
 <!-- ================= HOME ================= -->
 <section class="screen on" id="s-home">
-  <h1>声で勝負！<br>英単語バトル</h1>
-  <p class="mut sm">和訳を見て、英単語を<b>声</b>で答える。ペア／チームで対抗する時間制バトル。</p>
+  <h1>声単 <span style="font-size:16px;color:var(--mut)">こえたん</span></h1>
+  <p style="margin:0 0 2px;font-weight:800;color:var(--acc2);letter-spacing:.08em">ことば駅伝</p>
+  <p class="mut sm">和訳を見て、英単語を<b>声</b>で答える。言えた分だけランナーが進む、班対抗のたすきリレー。</p>
   <div style="height:14px"></div>
   <button class="btn primary block big" id="goTeacher">先生：ゲームを作る</button>
   <div style="height:10px"></div>
@@ -177,15 +243,17 @@ li{margin:.35em 0}
     <li>「ゲームを作る」→ 出題範囲・ラウンド数・時間を決めて<b>コードを作る</b>。</li>
     <li>プロジェクタにコードを大きく映す。生徒は同じページを開いてコードを入力。</li>
     <li>全班の準備ができたら、教師画面の<b>スタート</b>で合図。生徒も同時に画面をタップして開始。</li>
-    <li>ラウンドが終わると各班の画面に<b>作戦タイム</b>（言えなかった語の一覧）が出ます。ここで覚え直させます。</li>
+    <li>区間が終わると各班の画面に<b>中継所</b>（言えなかった語の一覧）が出ます。ここで覚え直させます。</li>
     <li>全ラウンド終了後、各班の画面に<b>結果コード</b>が出ます。教師画面の「結果を集計する」に打ち込むと表彰画面になります。</li>
   </ol>
   <h2>生徒</h2>
   <ol>
     <li>コードを入力 → 班番号と人数を選ぶ → メンバー名（なくてもOK）。</li>
-    <li>画面の<b>和訳</b>を見て、英単語を<b>声に出して</b>言う。正解すると次の語に進みます。</li>
-    <li>「いま話す人」が問題ごとに変わります。<b>まわりが教えるのはOK</b>。ただし最後に声を出すのは その人。</li>
-    <li>わからなければ<b>パス</b>。パスした語は作戦タイムに出ます。</li>
+    <li>画面の<b>和訳</b>を見て、英単語を<b>声に出して</b>言う。1語言えるごとにランナーが<b>100m</b>進みます。</li>
+    <li>問題ごとに<b>たすきが次の人へ渡ります</b>。<b>まわりが教えるのはOK</b>。ただし最後に声を出すのは たすきを持っている人。</li>
+    <li>コースの<b>灰色のランナー</b>はペースメーカー。第2区からは<b>前の区の自分</b>が相手になります。追い抜こう。</li>
+    <li>3連続で正解すると<b>追い風</b>が吹きます（速く走って見えるだけで、距離は1語100mのまま）。</li>
+    <li>わからなければ<b>パス</b>。パスした語は中継所に出ます。</li>
   </ol>
   <h2>うまく認識されないとき</h2>
   <ul>
@@ -231,23 +299,29 @@ li{margin:.35em 0}
   </div>
 
   <div class="field">
-    <label>ラウンド数</label>
+    <label>区間の数（ラウンド数）</label>
     <div class="seg" id="setRounds">
       <button data-v="1">1</button><button data-v="2">2</button>
       <button data-v="3" class="on">3</button><button data-v="4">4</button>
     </div>
-    <div class="xs mut" style="margin-top:6px">ラウンドの合間に「作戦タイム」が入り、言えなかった語が次のラウンドで再出題されます。</div>
+    <div class="xs mut" style="margin-top:6px">区間の合間に「中継所（作戦タイム）」が入り、言えなかった語が次の区間で再出題されます。</div>
   </div>
 
   <div class="field">
-    <label>1ラウンドの時間</label>
+    <label>1区間の時間</label>
     <select id="setRoundSec"></select>
-    <div class="xs mut" style="margin-top:6px">声を出し続けるのは3〜4分が限界です。<b>3分 &times; 3ラウンド</b>が標準。</div>
+    <div class="xs mut" style="margin-top:6px">声を出し続けるのは3〜4分が限界です。<b>3分 &times; 3区</b>が標準。</div>
   </div>
 
   <div class="field">
-    <label>作戦タイム（ラウンド間）</label>
+    <label>中継所（作戦タイム）</label>
     <select id="setBriefSec"></select>
+  </div>
+
+  <div class="field">
+    <label>ペースメーカー</label>
+    <select id="setPace"></select>
+    <div class="xs mut" style="margin-top:6px">コースを一緒に走る半透明のランナー。第1区は設定した速さ、第2区からは<b>自分の前の区の記録</b>が相手になります。</div>
   </div>
 
   <div class="field">
@@ -403,6 +477,18 @@ li{margin:.35em 0}
   </div>
   <div class="bar" id="pBarWrap"><i id="pBar" style="width:100%"></i></div>
 
+  <div class="course" id="course">
+    <div class="c-layer c-far" id="cFar"></div>
+    <div class="c-layer c-mid" id="cMid"></div>
+    <div class="c-road"><div class="c-lane" id="cLane"></div></div>
+    <div class="c-posts" id="cPosts"></div>
+    <div class="c-run ghost hide" id="cGhost"><div class="r-body"><div class="r-head"></div><div class="r-torso"></div><div class="r-sash"></div><div class="r-arm a"></div><div class="r-arm b"></div><div class="r-leg a"></div><div class="r-leg b"></div></div><div class="lab" id="cGhostLab"></div></div>
+    <div class="c-run" id="cMe"><div class="r-speed"><i></i><i></i><i></i></div><div class="r-body"><div class="r-head"></div><div class="r-torso"></div><div class="r-sash"></div><div class="r-arm a"></div><div class="r-arm b"></div><div class="r-leg a"></div><div class="r-leg b"></div></div></div>
+    <div class="c-dist" id="cDist">0 m</div>
+    <div class="c-combo" id="cCombo"></div>
+    <div class="c-baton" id="cBaton"></div>
+  </div>
+
   <div class="speaker hide" id="pSpeaker"></div>
 
   <div class="qcard" id="pCard">
@@ -429,11 +515,11 @@ li{margin:.35em 0}
 
 <!-- ================= STUDENT : BRIEF ================= -->
 <section class="screen" id="s-brief">
-  <h1 id="briefTitle">作戦タイム</h1>
+  <h1 id="briefTitle">中継所</h1>
   <div class="center bigtime" id="briefTime" style="font-size:52px">0:45</div>
-  <p class="sm mut center" id="briefLead">言えなかったことばです。ペアで確認して、次のラウンドで取り返そう。</p>
+  <p class="sm mut center" id="briefLead">言えなかったことばです。ペアで確認して、次の区で取り返そう。</p>
   <div class="wlist" id="briefList"></div>
-  <button class="btn primary block big" id="briefGo">次のラウンドへ</button>
+  <button class="btn primary block big" id="briefGo">次の区へ出発</button>
 </section>
 
 <!-- ================= STUDENT : RESULT ================= -->
@@ -442,7 +528,7 @@ li{margin:.35em 0}
   <div class="card center">
     <div class="sm mut" id="resTeam"></div>
     <div style="font-size:66px;font-weight:900;line-height:1.1" id="resScore">0</div>
-    <div class="sm mut">正解</div>
+    <div class="sm mut">m 走破（<span id="resWords">0</span>語）</div>
     <div class="sm" style="margin-top:10px" id="resDetail"></div>
   </div>
 
@@ -464,7 +550,6 @@ li{margin:.35em 0}
 
 </div>
 <div class="toast" id="toast"></div>
-<div class="combo" id="comboFx"></div>
 <div class="big3" id="big3"></div>
 
 <script>const W=[[1,"","at the airport","空港に到着する","arrive"],[2,"","with your idea","あなたの考えに賛成する","agree"],[3,"","for the bus","バスを待つ","wait"],[4,"","what to do","何をすべきか決める","decide"],[5,"","to see you again","またあなたに会いたいと思う","hope"],[6,"","talking with friends","友達と話すのを楽しむ","enjoy"],[7,"","reading the book","その本を読み終える","finish"],[8,"","playing the piano","ピアノをひく練習をする","practice"],[9,"","a diary every day","毎日日記をつける","keep"],[10,"","home at seven","7時に家を出る","leave"],[11,"","a book from him","彼から本を借りる","borrow"],[12,"","her some money","彼女にお金を貸す","lend"],[13,"","a big box","大きな箱を運ぶ","carry"],[14,"","the last train","終電に間に合う","catch"],[15,"","a birthday present","誕生日の贈り物を選ぶ","choose"],[16,"","Mt. Fuji","富士山に登る","climb"],[17,"","old coins","古い硬貨を集める","collect"],[18,"","the street","通りを横断する","cross"],[19,"","trains at Osaka","大阪で電車を乗りかえる","change"],[20,"","your answers","答えを確かめる","check"],[21,"","the reason","理由を説明する","explain"],[22,"","his name","彼の名前を忘れる","forget"],[23,"","her birthday","彼女の誕生日を覚えている","remember"],[24,"","a party for him","彼のためにパーティーを開く","hold"],[25,"What","to you?","君に何が起こったのか","happened"],[26,"","rice in Japan","日本で米を栽培する","grow"],[27,"","a new bridge","新しい橋を建設する","build"],[28,"","an umbrella with you","傘を持ってくる","bring"],[29,"","him to my house","彼を家に招待する","invite"],[30,"","the tennis club","テニス部に入る","join"],[31,"","the game","試合に負ける","lose"],[32,"","first prize","1等賞を取る","win"],[33,"","the train","電車に乗り遅れる","miss"],[34,"","to a new town","新しい町へ引っ越す","move"],[35,"","the exam","試験に合格する","pass"],[36,"","1,000 yen for the book","その本に1000円払う","pay"],[37,"","a letter from her","彼女から手紙を受け取る","receive"],[38,"","him an e-mail","彼にメールを送る","send"],[39,"","a room with my sister","姉と部屋を共有する","share"],[40,"","two hours on my homework","宿題に2時間費やす","spend"],[41,"","money for a trip","旅行のためにお金をためる","save"],[42,"","the book to the library","図書館に本を返す","return"],[43,"","by train","電車で旅行する","travel"],[44,"","my grandmother in Nara","奈良の祖母を訪ねる","visit"],[45,"","at a hotel in Kyoto","京都のホテルに泊まる","stay"],[46,"","to the station","駅へ急ぐ","hurry"],[47,"Don't","about me.","私のことを心配しないで","worry"],[48,"","at his joke","彼の冗談を聞いて笑う","laugh"],[49,"","like a baby","赤ちゃんのように泣く","cry"],[50,"","at the camera","カメラに向かってほほえむ","smile"],[51,"","for help","助けを求めて叫ぶ","shout"],[52,"","English to children","子供たちに英語を教える","teach"],[53,"","how to swim","泳ぎ方を習う","learn"],[54,"","his feelings","彼の気持ちを理解する","understand"],[55,"","his story","彼の話を信じる","believe"],[56,"","very tired today","今日はとても疲れを感じる","feel"],[57,"That","interesting.","それはおもしろそうだ","sounds"],[58,"This soup","good.","このスープはよい味がする","tastes"],[59,"","something burning","何かが焦げるにおいがする","smell"],[60,"Don't","the paintings.","その絵にさわらないで","touch"],[61,"","the ball hard","ボールを強く打つ","hit"],[62,"","a ball to him","彼にボールを投げる","throw"],[63,"","up the trash","ごみを拾い上げる","pick"],[64,"","the door open","ドアを押し開ける","push"],[65,"","his arm","彼の腕を引っぱる","pull"],[66,"","your right hand","右手を挙げる","raise"],[67,"","from a tree","木から落ちる","fall"],[68,"","the glass with water","コップを水で満たす","fill"],[69,"","my broken bike","こわれた自転車を修理する","fix"],[70,"","the problem","その問題を解決する","solve"],[71,"","the dishes after dinner","夕食後に皿を洗う","wash"],[72,"","a cup of coffee","コーヒーを1杯注文する","order"],[73,"","dinner to the guests","客に夕食を出す","serve"],[74,"","a school uniform","制服を着ている","wear"],[75,"","for eight hours","8時間眠る","sleep"],[76,"","up early in the morning","朝早く目を覚ます","wake"],[77,"","for a while","しばらく休む","rest"],[78,"","a bike to school","自転車で学校へ行く","ride"],[79,"","a car carefully","注意深く車を運転する","drive"],[80,"","to New York","飛行機でニューヨークへ行く","fly"],[81,"","a picture of a cat","ネコの絵をかく","draw"],[82,"","the wall white","壁を白くぬる","paint"],[83,"","the number of students","学生の数を数える","count"],[84,"","my left leg","左足をけがする","hurt"],[85,"","of a serious illness","重い病気で死ぬ","die"],[86,"","a doctor","医者と結婚する","marry"],[87,"","being alone","ひとりでいるのが大嫌いだ","hate"],[88,"What do you","?","どういう意味ですか","mean"],[89,"","the right answer","正しい答えを推測する","guess"],[90,"","a school festival","学園祭を計画する","plan"],[91,"","for the test","テストの準備をする","prepare"],[92,"","myself to them","彼らに自己紹介する","introduce"],[93,"","at the map","地図を指さす","point"],[94,"","the rules","規則に従う","follow"],[95,"","him to the room","彼を部屋へ案内する","lead"],[96,"","high school","高校に入学する","enter"],[97,"","yen for dollars","円をドルに両替する","exchange"],[98,"","the same mistake","同じまちがいを繰り返す","repeat"],[99,"","to rain all day","一日中雨が降り続く","continue"],[100,"","the station in ten minutes","10分で駅に着く","reach"],[101,"give me good","","私によい助言をくれる","advice"],[102,"useful","about Japan","日本についての役に立つ情報","information"],[103,"good","for us","私たちにとってよい知らせ","news"],[104,"the","for his anger","彼の怒りの理由","reason"],[105,"a serious","","深刻な問題","problem"],[106,"That's a good",".","それはよい考えだ","idea"],[107,"tell me your","","あなたの意見を教えて","opinion"],[108,"for","","たとえば","example"],[109,"a well-known","","よく知られた事実","fact"],[110,"have a","to talk with him","彼と話す機会がある","chance"],[111,"my","for the future","私の将来の夢","dream"],[112,"learn from","","経験から学ぶ","experience"],[113,"a happy","of my childhood","子供時代の幸せな思い出","memory"],[114,"in the near","","近い将来に","future"],[115,"learn from the","","過去から学ぶ","past"],[116,"at the","of fifteen","15歳のときに","age"],[117,"live a happy","","幸せな人生を送る","life"],[118,"be good for your","","健康によい","health"],[119,"parts of the","","体の部分","body"],[120,"change my","","考えを変える","mind"],[121,"a person with a warm","","温かい心を持つ人","heart"],[122,"speak in a loud","","大きな声で話す","voice"],[123,"a new English","","新しい英単語","word"],[124,"speak a foreign","","外国語を話す","language"],[125,"learn about Japanese","","日本の文化について学ぶ","culture"],[126,"the","of this town","この町の歴史","history"],[127,"a small fishing","","小さな漁村","village"],[128,"The","goes around the sun.","地球は太陽の周りを回る","earth"],[129,"the beauty of","","自然の美しさ","nature"],[130,"protect the","","環境を守る","environment"],[131,"The","is clean here.","ここは空気がきれいだ","air"],[132,"The","is nice today.","今日は天気がよい","weather"],[133,"the four","of Japan","日本の四季","seasons"],[134,"a beautiful","from the hill","丘からの美しい眺め","view"],[135,"make a loud","","大きな音を立てる","noise"],[136,"water the","","植物に水をやる","plants"],[137,"take a walk in the","","森の中を散歩する","forest"],[138,"work in the rice","","田んぼで働く","fields"],[139,"sit on the","","地面にすわる","ground"],[140,"travel in","","宇宙を旅する","space"],[141,"Their lives are in",".","彼らの命は危険にさらされている","danger"],[142,"a traffic","","交通事故","accident"],[143,"a lot of","in the morning","朝の多くの交通量","traffic"],[144,"put out the","","火を消す","fire"],[145,"stop the","","戦争をやめさせる","war"],[146,"a symbol of","","平和の象徴","peace"],[147,"a school","","校則","rule"],[148,"a member of the soccer","","サッカーチームの一員","team"],[149,"a","of young people","若者の一団","group"],[150,"a big","in our school","学校の大きな行事","event"],[151,"a summer","in the town","町の夏祭り","festival"],[152,"a national","","国民の祝日","holiday"],[153,"go on a","to Hokkaido","北海道へ旅行に行く","trip"],[154,"buy a train","","電車の切符を買う","ticket"],[155,"take a","by the window","窓ぎわの席にすわる","seat"],[156,"turn left at the","","角を左に曲がる","corner"],[157,"on the third","","3階に","floor"],[158,"a tall","in the city","市内の高い建物","building"],[159,"a","over the river","川にかかる橋","bridge"],[160,"a","to the airport","空港への道","road"],[161,"a washing","","洗濯機","machine"],[162,"write a","in English","英語で手紙を書く","letter"],[163,"leave a","","伝言を残す","message"],[164,"an interesting","","おもしろい話","story"],[165,"read the","every morning","毎朝新聞を読む","newspaper"],[166,"a","on the accident","その事故についての報告","report"],[167,"make a","in English","英語でスピーチをする","speech"],[168,"science and other","","理科やその他の教科","subjects"],[169,"take a piano","","ピアノのレッスンを受ける","lesson"],[170,"a math","","数学のテスト","test"],[171,"study at a","","大学で学ぶ","university"],[172,"find a good","","よい仕事を見つける","job"],[173,"sell it at a high","","高い値段でそれを売る","price"],[174,"many","in the shop","店内の多くの客","customers"],[175,"The hotel has good",".","そのホテルはサービスがよい","service"],[176,"work for a big","","大きな会社で働く","company"],[177,"a car","","自動車工場","factory"],[178,"live on a","","農場で暮らす","farm"],[179,"have a big","","たっぷりと食事をとる","meal"],[180,"a delicious","","おいしい料理","dish"],[181,"eat fresh","","新鮮な野菜を食べる","vegetables"],[182,"do some","every day","毎日運動をする","exercise"],[183,"watch a soccer","","サッカーの試合を見る","match"],[184,"break the world","","世界記録を破る","record"],[185,"a good","to visit","訪れるのによい場所","place"],[186,"the same","as mine","私のと同じ大きさ","size"],[187,"in the","of a heart","ハートの形をした","shape"],[188,"a large","of people","多数の人々","number"],[189,"the first","of the story","その話の最初の部分","part"],[190,"","of the students","学生の半数","half"],[191,"an","decision","重要な決定","important"],[192,"a","question","難しい質問","difficult"],[193,"It is","to win.","勝つことは可能だ","possible"],[194,"an","watch","高価な腕時計","expensive"],[195,"a","ticket to Tokyo","東京への安い切符","cheap"],[196,"a","writer","有名な作家","famous"],[197,"a","singer in Japan","日本で人気のある歌手","popular"],[198,"a","country","外国","foreign"],[199,"in a","way","違ったやり方で","different"],[200,"on a","day","特別な日に","special"],[201,"The concert is",".","そのコンサートは無料だ","free"],[202,"I'm","with my work.","私は仕事で忙しい","busy"],[203,"Be","with the knife.","ナイフに気をつけて","careful"],[204,"a","animal","危険な動物","dangerous"],[205,"a","place for children","子供にとって安全な場所","safe"],[206,"a","tool for cooking","料理に役立つ道具","useful"],[207,"Your advice was very",".","あなたの助言はとても役に立った","helpful"],[208,"a","smile","親しみのこもったほほえみ","friendly"],[209,"Please be","in the library.","図書館では静かにして","quiet"],[210,"a","classroom","うるさい教室","noisy"],[211,"a","star in the sky","空に輝く星","bright"],[212,"It is","outside.","外は暗い","dark"],[213,"a","lake","深い湖","deep"],[214,"a","river","幅の広い川","wide"],[215,"a","street","狭い通り","narrow"],[216,"a","bag","重いかばん","heavy"],[217,"a","meal","軽い食事","light"],[218,"a","wind","強い風","strong"],[219,"a","point","弱点","weak"],[220,"a","country","豊かな国","rich"],[221,"help","people","貧しい人々を助ける","poor"],[222,"look","today","今日は疲れて見える","tired"],[223,"be","in bed","病気で寝ている","sick"],[224,"stay","","健康を保つ","healthy"],[225,"get","at me","私に腹を立てる","angry"],[226,"I'm","of dogs.","私は犬が怖い","afraid"],[227,"be","at the news","その知らせに驚く","surprised"],[228,"be","about the game","その試合にわくわくする","excited"],[229,"be","in science","科学に興味がある","interested"],[230,"I'm","to see you.","あなたに会えてうれしい","glad"],[231,"feel","in a big city","大都会で孤独を感じる","lonely"],[232,"be","before the speech","スピーチの前に緊張する","nervous"],[233,"be","of my hometown","ふるさとを誇りに思う","proud"],[234,"I'm","that he will come.","彼はきっと来ると思う","sure"],[235,"Are you","to go?","出かける準備はできましたか","ready"],[236,"a","blue sky","澄んだ青空","clear"],[237,"the","answer","正しい答え","correct"],[238,"the","number","まちがった番号","wrong"],[239,"a","story","本当の話","true"],[240,"a","day","すばらしい一日","wonderful"],[241,"a","mistake","ひどいまちがい","terrible"],[242,"","air in the mountains","山の新鮮な空気","fresh"],[243,"wash my","hands","汚れた手を洗う","dirty"],[244,"a","bed","柔らかいベッド","soft"],[245,"The bread is",".","そのパンは固い","hard"],[246,"in","English","簡単な英語で","simple"],[247,"my","room","自分自身の部屋","own"],[248,"We have","time.","十分な時間がある","enough"],[249,"for","days","数日間","several"],[250,"be","after running","走ったあとのどがかわく","thirsty"],[251,"","go to the library","よく図書館へ行く","often"],[252,"I","get up at six.","私はふだん6時に起きる","usually"],[253,"I have","finished it.","私はすでにそれを終えた","already"],[254,"He hasn't come",".","彼はまだ来ていない","yet"],[255,"It is","raining.","まだ雨が降っている","still"],[256,"See you",".","またすぐ会いましょう","soon"],[257,"I'll call you",".","あとで電話します","later"],[258,"","reach the top","ついに頂上に着く","finally"],[259,"It","began to rain.","突然雨が降り始めた","suddenly"],[260,"walk","up the hill","ゆっくり丘を登る","slowly"],[261,"walk","to school","急いで学校へ歩く","quickly"],[262,"close the door","","静かにドアを閉める","quietly"],[263,"listen","to the teacher","先生の話を注意して聞く","carefully"],[264,"find the place","","簡単にその場所を見つける","easily"],[265,"","every day","ほとんど毎日","almost"],[266,"","it will rain.","たぶん雨が降るだろう","Maybe"],[267,"I'm","sorry.","本当にごめんなさい","really"],[268,"","in summer","特に夏に","especially"],[269,"work","with them","彼らと一緒に働く","together"],[270,"live","in Tokyo","東京でひとりで暮らす","alone"],[271,"study","next year","来年留学する","abroad"],[272,"two years","","2年前に","ago"],[273,"","a week","週に1回","once"],[274,"","a month","月に2回","twice"],[275,"Say it",", please.","もう一度言ってください","again"],[276,"Do you want anything","?","他に何かほしいですか","else"],[277,"I","like music.","私は音楽も好きだ","also"],[278,"look","to seeing you","あなたに会うのを楽しみに待つ","forward"],[279,"go","down this street","この通りをまっすぐ行く","straight"],[280,"put the book","","本を片づける","away"],[281,"stay home","it is raining","雨が降っているので家にいる","because"],[282,"","it rains, I won't go.","もし雨が降れば私は行かない","If"],[283,"read a book","eating","食べながら本を読む","while"],[284,"wait","five o'clock","5時まで待つ","until"],[285,"I have known him","2020.","2020年から彼を知っている","since"],[286,"wash your hands","eating","食べる前に手を洗う","before"],[287,"study English","dinner","夕食後に英語を勉強する","after"],[288,"sleep","the class","授業中に眠る","during"],[289,"sit","the two boys","2人の少年の間にすわる","between"],[290,"go","the tunnel","トンネルを通り抜ける","through"],[291,"run","the field","野原を走って横切る","across"],[292,"walk","the river","川沿いを歩く","along"],[293,"travel","the country","国中を旅する","around"],[294,"the garden","the house","家の裏にある庭","behind"],[295,"go out","an umbrella","傘を持たずに出かける","without"],[296,"jump","the pool","プールに飛び込む","into"],[297,"in","of the station","駅の前で","front"],[298,"help","other","互いに助け合う","each"],[299,"","you and I","あなたも私も両方とも","both"],[300,"taller","my brother","兄よりも背が高い","than"],[301,"","on TV","テレビに出る","appear"],[302,"","into the dark","暗やみの中へ消える","disappear"],[303,"","him to go out","彼が外出するのを許す","allow"],[304,"","to the same group","同じグループに属する","belong"],[305,"","about the environment","環境を気にかける","care"],[306,"What","the accident?","何が事故を引き起こしたのか","caused"],[307,"","with people abroad","海外の人々と意思を伝え合う","communicate"],[308,"","Japan with America","日本とアメリカを比べる","compare"],[309,"","the work in a week","1週間で仕事を仕上げる","complete"],[310,"The bridge","the two islands.","その橋は2つの島を結んでいる","connects"],[311,"","my anger","怒りを抑える","control"],[312,"","a new website","新しいウェブサイトを作る","create"],[313,"The typhoon","many houses.","台風が多くの家に損害を与えた","damaged"],[314,"It","on the weather.","それは天気次第だ","depends"],[315,"","what you saw","見たものを描写する","describe"],[316,"","the old building","古い建物を破壊する","destroy"],[317,"","a new medicine","新しい薬を開発する","develop"],[318,"","a new star","新しい星を発見する","discover"],[319,"","the problem with him","その問題について彼と話し合う","discuss"],[320,"","him to try again","もう一度やってみるよう彼を励ます","encourage"],[321,"","him to come soon","彼がすぐ来ると思う","expect"],[322,"","my feelings in words","気持ちを言葉で表す","express"],[323,"","the birds in the park","公園の鳥にえさをやる","feed"],[324,"The two dogs are",".","2匹の犬がけんかしている","fighting"],[325,"Please","me.","どうか私を許してください","forgive"],[326,"","information about it","それについての情報を集める","gather"],[327,"","from high school","高校を卒業する","graduate"],[328,"","him with a smile","笑顔で彼にあいさつする","greet"],[329,"","tourists around Kyoto","観光客に京都を案内する","guide"],[330,"","a picture on the wall","壁に絵をかける","hang"],[331,"","behind a tree","木の後ろに隠れる","hide"],[332,"","life without a phone","電話のない生活を想像する","imagine"],[333,"The price","tax.","その値段は税を含んでいる","includes"],[334,"The number of tourists is",".","観光客の数が増えている","increasing"],[335,"","young people","若者に影響を与える","influence"],[336,"Who","the telephone?","だれが電話を発明したのか","invented"],[337,"Don't","people by their looks.","人を見た目で判断するな","judge"],[338,"","on the door","ドアをノックする","knock"],[339,"","on the grass","芝生に横になる","lie"],[340,"","to finish the work","なんとか仕事を終える","manage"],[341,"He didn't","the accident.","彼は事故のことを口にしなかった","mention"],[342,"","a small mistake","小さなまちがいに気づく","notice"],[343,"","him a cup of tea","彼にお茶を1杯勧める","offer"],[344,"","on stage","舞台で演じる","perform"],[345,"","tea to coffee","コーヒーより紅茶が好きだ","prefer"],[346,"","electricity from the sun","太陽から電気を作り出す","produce"],[347,"","to come back soon","すぐ戻ると約束する","promise"],[348,"","children from danger","子供を危険から守る","protect"],[349,"","food for the poor","貧しい人々に食料を与える","provide"],[350,"","my mistake","自分のまちがいに気づく","realize"],[351,"I","his voice at once.","私はすぐに彼の声だとわかった","recognized"],[352,"","paper and cans","紙と缶を再生利用する","recycle"],[353,"","the number of cars","車の数を減らす","reduce"],[354,"","to answer the question","その質問に答えるのを断る","refuse"],[355,"","at home on Sunday","日曜日に家でくつろぐ","relax"],[356,"","your shoes","靴を脱ぐ","remove"],[357,"","the broken window","こわれた窓を修理する","repair"],[358,"","to his e-mail","彼のメールに返事をする","reply"],[359,"I","I could fly.","飛べたらいいのになあ","wish"],[360,"The plan","more money.","その計画にはもっとお金が必要だ","requires"],[361,"","other cultures","他の文化を尊重する","respect"],[362,"The sun","in the east.","太陽は東から昇る","rises"],[363,"","for the missing dog","行方不明の犬を捜す","search"],[364,"He","to be happy.","彼は幸せそうに見える","seems"],[365,"","the best one","最もよいものを選び出す","select"],[366,"","the garbage","ごみを分別する","separate"],[367,"","the table for dinner","夕食のためにテーブルの用意をする","set"],[368,"","hands with him","彼と握手する","shake"],[369,"The ship","in the sea.","その船は海に沈んだ","sank"],[370,"","the news quickly","その知らせをすばやく広める","spread"],[371,"","in business","事業に成功する","succeed"],[372,"","a good plan","よい計画を提案する","suggest"],[373,"","my English","私の英語を上達させる","improve"],[374,"","his opinion","彼の意見を支持する","support"],[375,"I","he is honest.","彼は正直だと思う","suppose"],[376,"","people about the storm","嵐について人々に警告する","warn"],[377,"","the earthquake","地震を生き延びる","survive"],[378,"","English into Japanese","英語を日本語に訳す","translate"],[379,"","him like a child","彼を子供のように扱う","treat"],[380,"I","my friends.","私は友達を信頼している","trust"],[381,"Don't","your time.","時間をむだにするな","waste"],[382,"I","where he is.","彼はどこにいるのだろう","wonder"],[383,"Does life","on Mars?","火星に生命は存在するのか","exist"],[384,"","at home all day","一日中家にとどまる","remain"],[385,"","his invitation","彼の招待を受け入れる","accept"],[386,"","some salt to the soup","スープに塩を加える","add"],[387,"","eating too much","食べ過ぎるのを避ける","avoid"],[388,"The dog","him.","その犬は彼を襲った","attacked"],[389,"","the meeting","会議に出席する","attend"],[390,"","his birthday","彼の誕生日を祝う","celebrate"],[391,"","with other teams","他のチームと競争する","compete"],[392,"Snow","the mountain.","雪が山をおおっている","covers"],[393,"","the disease","その病気を治す","cure"],[394,"","the package to his house","彼の家に荷物を届ける","deliver"],[395,"","from the fire","火事から逃げる","escape"],[396,"","cars to other countries","他国へ車を輸出する","export"],[397,"","oil from abroad","海外から石油を輸入する","import"],[398,"","to her for being late","遅れたことを彼女にあやまる","apologize"],[399,"I","your help.","ご助力に感謝します","appreciate"],[400,"","accidents","事故を防ぐ","prevent"],[401,"the","to think","考える能力","ability"],[402,"take","at once","すぐに行動を起こす","action"],[403,"club","after school","放課後のクラブ活動","activities"],[404,"children and","","子供と大人","adults"],[405,"the","of living in a city","都会に住む利点","advantage"],[406,"a large","of water","大量の水","amount"],[407,"read an","in the newspaper","新聞の記事を読む","article"],[408,"pay","to his words","彼の言葉に注意を払う","attention"],[409,"the","score of the class","クラスの平均点","average"],[410,"study human","","人間の行動を研究する","behavior"],[411,"the main","of the story","その物語の主人公","character"],[412,"make a","","選択をする","choice"],[413,"an American","","アメリカ市民","citizen"],[414,"the warm","of Okinawa","沖縄の温暖な気候","climate"],[415,"a member of the local","","地域社会の一員","community"],[416,"in good","","よい状態で","condition"],[417,"win a speech","","スピーチコンテストで優勝する","contest"],[418,"have the","to say no","いやだと言う勇気を持つ","courage"],[419,"a Japanese","","日本の習慣","custom"],[420,"the","of his father","彼の父の死","death"],[421,"make an important","","重要な決定を下す","decision"],[422,"It's 30","today.","今日は30度だ","degrees"],[423,"a beautiful","","美しいデザイン","design"],[424,"the","between the two","その2つの違い","difference"],[425,"have","in walking","歩くのに苦労する","difficulty"],[426,"go in the wrong","","まちがった方向へ行く","direction"],[427,"prepare for a","","災害に備える","disaster"],[428,"a rare","","まれな病気","disease"],[429,"a long","","長い距離","distance"],[430,"A big","hit the city.","大地震がその市を襲った","earthquake"],[431,"the world","","世界経済","economy"],[432,"","for young children","幼い子供のための教育","education"],[433,"the","of TV on children","テレビが子供に与える影響","effect"],[434,"make an","to win","勝つために努力する","effort"],[435,"save","at home","家庭でエネルギーを節約する","energy"],[436,"What","of music do you like?","どんな種類の音楽が好きですか","kind"],[437,"a useful English","","役に立つ英語表現","expression"],[438,"have no","of death","死を恐れない","fear"],[439,"hurt her","","彼女の気持ちを傷つける","feelings"],[440,"fight for","","自由を求めて戦う","freedom"],[441,"reach my","","目標に達する","goal"],[442,"the Japanese","","日本政府","government"],[443,"welcome the","","客を歓迎する","guests"],[444,"have a good","","よい習慣を持つ","habit"],[445,"bring","to everyone","みんなに幸福をもたらす","happiness"],[446,"the","body","人体","human"],[447,"the best","to learn English","英語を学ぶ最もよい方法","way"],[448,"understand the","of sleep","睡眠の大切さを理解する","importance"],[449,"the tourist","","観光産業","industry"],[450,"play a musical","","楽器を演奏する","instrument"],[451,"have an","in art","芸術に興味を持つ","interest"],[452,"have a lot of","","多くの知識を持っている","knowledge"],[453,"break the","","法律を破る","law"],[454,"a great","","偉大な指導者","leader"],[455,"a high","of English","高い英語力","level"],[456,"the","for the house","その家の材料","materials"],[457,"understand the","of the word","その語の意味を理解する","meaning"],[458,"take","for a cold","風邪のために薬を飲む","medicine"],[459,"hold a","","会議を開く","meeting"],[460,"a","of my family","私の家族の一員","member"],[461,"make a big","","大きなまちがいをする","mistake"],[462,"a","for peace","平和運動","movement"],[463,"the people of this","","この国の人々","nation"],[464,"my next-door","","隣の家の人","neighbor"],[465,"a good","for young people","若者にとってよい機会","opportunity"],[466,"have a","in my back","背中が痛む","pain"],[467,"a","in the hospital","病院の患者","patient"],[468,"twenty","of the price","値段の20パーセント","percent"],[469,"a great","","すばらしい演技","performance"],[470,"Wait a",".","少しの間待ってください","moment"],[471,"a kind","","親切な人","person"],[472,"read for","","楽しみのために読書する","pleasure"],[473,"the","of Japan","日本の人口","population"],[474,"on the other","of the road","道の反対側に","side"],[475,"the","of nature","自然の力","power"],[476,"the","of making paper","紙を作る過程","process"],[477,"a new","of the company","その会社の新製品","product"],[478,"a school","","学校の課題研究","project"],[479,"the","of his visit","彼の訪問の目的","purpose"],[480,"the","of the water","その水の質","quality"],[481,"a good","with others","他人とのよい関係","relationship"],[482,"do","on animals","動物の研究をする","research"],[483,"the","of the test","そのテストの結果","result"],[484,"play an important","","重要な役割を果たす","role"],[485,"in the 21st","","21世紀に","century"],[486,"modern","","現代社会","society"],[487,"keep a","","秘密を守る","secret"],[488,"have a good","of humor","ユーモアのセンスがある","sense"],[489,"in a difficult","","難しい状況で","situation"],[490,"learn a new","","新しい技能を身につける","skill"],[491,"be","to swim fast","速く泳ぐことができる","able"],[492,"an","volunteer","活動的なボランティア","active"],[493,"The fish is still",".","その魚はまだ生きている","alive"],[494,"in","times","古代に","ancient"],[495,"the","rules of the game","そのゲームの基本的な規則","basic"],[496,"a","amount of money","ある程度の金額","certain"],[497,"a","chair","快適ないす","comfortable"],[498,"a","name in Japan","日本ではよくある名前","common"],[499,"It is","for me.","それは私に都合がよい","convenient"],[500,"a","child","好奇心の強い子供","curious"],[501,"The bird is",".","その鳥は死んでいる","dead"],[502,"an","box","空の箱","empty"],[503,"","problems","環境問題","environmental"],[504,"","rights for all","すべての人に平等な権利","equal"],[505,"an","idea","すばらしい考え","excellent"],[506,"an","game of soccer","わくわくするサッカーの試合","exciting"],[507,"the","match of the year","その年の最後の試合","final"],[508,"","warming","地球温暖化","global"],[509,"a","tree","巨大な木","huge"],[510,"He is seriously",".","彼は重い病気だ","ill"],[511,"It is","to finish it today.","今日それを終えるのは不可能だ","impossible"],[512,"","understanding","国際理解","international"],[513,"a","newspaper","地元の新聞","local"],[514,"a","day for me","私にとって幸運な日","lucky"],[515,"the","street of the town","町の大通り","main"],[516,"a","school","医学部","medical"],[517,"a","building","現代的な建物","modern"],[518,"","parks in Japan","日本の国立公園","national"],[519,"my","language","私の母語","native"],[520,"the","world","自然界","natural"],[521,"It is","to sleep well.","よく眠ることが必要だ","necessary"],[522,"a","school day","ふつうの学校の日","normal"],[523,"the","plan","最初の計画","original"],[524,"a","score on the test","テストで満点","perfect"],[525,"a","question","個人的な質問","personal"],[526,"be","to older people","年上の人に礼儀正しくする","polite"],[527,"a","country","強大な国","powerful"],[528,"","time with my family","家族との貴重な時間","precious"],[529,"a","school","私立学校","private"],[530,"a","library","公立図書館","public"],[531,"a","animal","めずらしい動物","rare"],[532,"in","years","近年","recent"],[533,"be","for the accident","その事故に責任がある","responsible"],[534,"","research","科学的な研究","scientific"],[535,"","damage","深刻な損害","serious"],[536,"I'm","with strangers.","私は知らない人には内気だ","shy"],[537,"a","experience","似たような経験","similar"],[538,"solve","problems","社会問題を解決する","social"],[539,"a","business","成功した事業","successful"],[540,"a","book","厚い本","thick"],[541,"a","Japanese house","伝統的な日本の家","traditional"],[542,"a","culture","独特の文化","unique"],[543,"for","reasons","さまざまな理由で","various"],[544,"","animals in Africa","アフリカの野生動物","wild"],[545,"a","old man","賢い老人","wise"],[546,"What","happened?","実際に何が起こったのか","actually"],[547,"",", let's go.","とにかく行こう","Anyway"],[548,"He will","come.","彼はきっと来る","certainly"],[549,"Please speak more",".","もっとはっきり話してください","clearly"],[550,"I","forgot it.","私はそれをすっかり忘れた","completely"],[551,"go","to the station","駅へ直接行く","directly"],[552,"He","became a doctor.","彼はついに医者になった","eventually"],[553,"at","nine o'clock","ちょうど9時に","exactly"],[554,"","hot weather","極めて暑い天気","extremely"],[555,"",", no one was hurt.","幸運にもだれもけがをしなかった","Fortunately"],[556,"","speaking","一般的に言えば","generally"],[557,"I can","hear you.","あなたの声がほとんど聞こえない","hardly"],[558,"",", I don't agree.","しかしながら私は賛成しない","However"],[559,"Come here",".","すぐにここに来なさい","immediately"],[560,"drink tea","of coffee","コーヒーの代わりに紅茶を飲む","instead"],[561,"a","used word","広く使われている語","widely"],[562,"The students are","girls.","生徒の大部分は女子だ","mostly"],[563,"","ten years ago","10年近く前に","nearly"],[564,"","he is at home.","ひょっとすると彼は家にいるかもしれない","Perhaps"],[565,"He will","win.","彼はおそらく勝つだろう","probably"],[566,"It is","cold today.","今日はかなり寒い","rather"],[567,"I met him",".","最近彼に会った","recently"],[568,"","a child can do it.","子供でさえそれができる","Even"],[569,"Have you","been to Kyoto?","京都へ行ったことがありますか","ever"],[570,"It rained;","we stayed home.","雨が降った。それゆえ私たちは家にいた","therefore"],[571,"",", it rained.","残念ながら雨が降った","Unfortunately"],[572,"look for it","","どこでもそれを探す","everywhere"],[573,"I hope to see you",".","いつかあなたに会いたい","someday"],[574,"stay friends","","永遠に友達でいる","forever"],[575,"It's","difficult.","それはかなり難しい","quite"],[576,"","he was tired, he worked.","彼は疲れていたが働いた","Although"],[577,"","she is young, she is wise.","彼女は若いけれども賢い","Though"],[578,"I don't know","it is true.","それが本当かどうかわからない","whether"],[579,"I won't go","you come.","あなたが来ないかぎり私は行かない","unless"],[580,"the tallest","the three","3人の中でいちばん背が高い","among"],[581,"the sky","our heads","頭上の空","above"],[582,"five degrees","zero","零下5度","below"],[583,"I'm","the plan.","私はその計画に反対だ","against"],[584,"walk","the station","駅の方へ歩く","toward"],[585,"come back","a week","1週間以内に戻る","within"],[586,"open every day","Monday","月曜以外は毎日開いている","except"],[587,"","English, he speaks French.","英語に加えて彼はフランス語を話す","Besides"],[588,"","to the news, it will rain.","その知らせによれば雨が降るだろう","According"],[589,"in","of fire","火事の場合には","case"],[590,"","to his help, I finished it.","彼の助けのおかげでそれを終えた","Thanks"],[591,"in","of the rain","雨にもかかわらず","spite"],[592,"","coffee or tea","コーヒーか紅茶のどちらか","either"],[593,"","he nor I was late.","彼も私も遅刻しなかった","Neither"],[594,"neither meat","fish","肉も魚も…ない","nor"],[595,"at","ten people","少なくとも10人","least"],[596,"In",", he is kind.","さらに彼は親切だ","addition"],[597,"as","as you like","あなたの好きなだけ長く","long"],[598,"no","what he says","彼が何と言おうとも","matter"],[599,"","my brother, I like sports.","兄と違って私はスポーツが好きだ","Unlike"],[600,"","a hundred people","100人以上の人々","over"]];</script>
@@ -651,7 +736,7 @@ window.CFG = { judge:'soft' };
 </script>
 <script>
 /* =========================================================================
-   声で勝負！英単語バトル ── 教師がコードを発行し、班対抗で音声入力する時間制ゲーム。
+   声単（こえたん）／ことば駅伝 ── 教師がコードを発行し、班対抗で音声入力する時間制ゲーム。
    サーバー不要。設定はゲームコードに、結果は結果コードに詰めてやり取りする。
    発音判定と単語データは「恋のことのは」から流用。
    ========================================================================= */
@@ -707,27 +792,28 @@ const PRESETS = [
   { n:'全範囲（1〜600）',                  lo:1,   hi:600 },
   { n:'番号を自分で決める',                lo:0,   hi:0   }
 ];
-const GC_BITS = [6,6,2,3,3,2,3,5];   /* loIdx hiIdx rounds-1 rsIdx bfIdx judge flags seed = 30bit */
+const PACE_S  = [0, 6.0, 4.5, 3.5];  /* ペースメーカーの 1語あたり秒数。0＝出さない */
+const GC_BITS = [6,6,2,3,3,2,3,3,2]; /* loIdx hiIdx rounds-1 rsIdx bfIdx judge flags seed pace = 30bit */
 const RC_BITS = [6,8,5,5,6];         /* team score maxCombo growth+15 check = 30bit */
 
 function encodeGame(c){
   const flags = (c.practice?1:0) | (c.rotate?2:0) | (c.tts?4:0);
-  const n = pack([ (c.lo-1)/10, c.hi/10-1, c.rounds-1, c.rsIdx, c.bfIdx, c.judge, flags, c.seed ], GC_BITS);
+  const n = pack([ (c.lo-1)/10, c.hi/10-1, c.rounds-1, c.rsIdx, c.bfIdx, c.judge, flags, c.seed, c.pace ], GC_BITS);
   return enc32(n, 6);
 }
 function decodeGame(code){
   if(!/^[0-9A-Z]{6}$/.test(code)) return null;
   const n = dec32(code); if(n===null) return null;
-  const [loI,hiI,r1,rsIdx,bfIdx,jd,flags,seed] = unpack(n, GC_BITS);
+  const [loI,hiI,r1,rsIdx,bfIdx,jd,flags,seed,pace] = unpack(n, GC_BITS);
   const lo = loI*10+1, hi = (hiI+1)*10;
   if(lo>=hi || hi>600) return null;
   if(rsIdx>=ROUND_SEC.length || bfIdx>=BRIEF_SEC.length || jd>2) return null;
-  return { code, lo, hi, rounds:r1+1, rsIdx, bfIdx, judge:jd, seed,
+  return { code, lo, hi, rounds:r1+1, rsIdx, bfIdx, judge:jd, seed, pace,
            roundSec:ROUND_SEC[rsIdx], briefSec:BRIEF_SEC[bfIdx],
            practice:!!(flags&1), rotate:!!(flags&2), tts:!!(flags&4) };
 }
-const summaryOf = c => `単語 ${c.lo}〜${c.hi}／${c.rounds}ラウンド × ${fmt(c.roundSec)}`
-  + (c.briefSec ? `／作戦タイム ${c.briefSec}秒` : '')
+const summaryOf = c => `単語 ${c.lo}〜${c.hi}／${c.rounds}区 × ${fmt(c.roundSec)}`
+  + (c.briefSec ? `／中継所 ${c.briefSec}秒` : '')
   + `／判定 ${['きびしい','ふつう','あまい'][c.judge]}`;
 
 /* =========================================================================
@@ -737,21 +823,52 @@ const SRC = window.SpeechRecognition || window.webkitSpeechRecognition;
 const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Mac/.test(navigator.platform) && navigator.maxTouchPoints>1);
 let rec=null, recWant=false, micPrimed=false, onHeard=null, waveEl=null;
 
+/* continuous 認識は 1 回の起動中の結果を e.results にためこみ続ける。
+   しかも Chrome は発話が終わってから 0.5〜2 秒遅れて「確定結果」を返すので、
+   何もしないと〈さっき得点した発話の確定版〉が次の問題に届いて、
+   黙っていても正解になってしまう（連続正解中ほど起きやすい）。
+   出題が変わった時点で、そこまでの発話を採点対象から外す。 */
+let recResults=null, recSkip=0, recUsed={};
+function dropSpoken(){
+  const rs=recResults; if(!rs) return;
+  for(let i=0;i<rs.length;i++){
+    if(rs[i].isFinal){ recSkip=Math.max(recSkip, i+1); continue; }  /* 確定済みは以後いっさい見ない */
+    const t0=(rs[i][0] && rs[i][0].transcript) || '';               /* 発話中のものは、ここまでを使用済みに */
+    if(t0.trim()) recUsed[i]=t0;
+  }
+}
+function resetSpoken(){ recResults=null; recSkip=0; recUsed={}; }
+
 function waveOn(on){ if(waveEl) waveEl.classList.toggle('live', !!on); }
 function buildRec(){
   if(!SRC) return null;
   const r = new SRC();
   r.lang='en-US'; r.continuous=true; r.interimResults=true; r.maxAlternatives=10;
-  r.onstart = ()=> waveOn(true);
+  r.onstart = ()=>{ waveOn(true); resetSpoken(); };
   r.onresult = e=>{
     if(!onHeard) return;
-    const texts=[]; let fin=false, interim='';
-    for(let i=Math.max(0,e.resultIndex-1); i<e.results.length; i++){
+    recResults = e.results;
+    const texts=[], top=[]; let fin=false, interim='';
+    for(let i=Math.max(e.resultIndex, recSkip); i<e.results.length; i++){
       const res=e.results[i];
-      if(res.isFinal) fin=true; else interim=res[0].transcript;
-      for(let a=0;a<res.length;a++) texts.push(res[a].transcript);
+      const used=recUsed[i];
+      if(res.isFinal) fin=true;
+      /* 使い終わった発話は、第1候補の「続き」だけを見る。
+         同じ発話の第2候補以下は、次の問題の答えに化けて誤正解の元になるので捨てる。 */
+      const nAlt = (used===undefined) ? res.length : 1;
+      for(let a=0;a<nAlt;a++){
+        let t=(res[a] && res[a].transcript) || '';
+        if(used!==undefined){
+          if(t.toLowerCase().indexOf(used.toLowerCase())!==0) continue;
+          t=t.slice(used.length);
+        }
+        t=t.trim(); if(!t) continue;
+        texts.push(t);
+        if(a<3) top.push(t);                 /* 「おしい」は上位3候補だけで見る */
+        if(a===0 && !res.isFinal) interim=t;
+      }
     }
-    if(texts.length) onHeard(texts, fin, interim);
+    if(texts.length) onHeard(texts, fin, interim, top);
   };
   r.onerror = e=>{
     if(e.error==='not-allowed' || e.error==='service-not-allowed'){
@@ -794,7 +911,7 @@ function startRec(){
   }, IS_IOS ? 240 : 0);
   return true;
 }
-function stopRec(){ recWant=false; try{ rec && rec.stop(); }catch(_){} waveOn(false); }
+function stopRec(){ recWant=false; try{ rec && rec.stop(); }catch(_){} waveOn(false); resetSpoken(); }
 function say(word){
   if(!window.speechSynthesis) return;
   try{
@@ -825,6 +942,8 @@ function initSetup(){
   sel.value='3';
   $('#setRoundSec').innerHTML = ROUND_SEC.map((s,i)=>`<option value="${i}"${i===4?' selected':''}>${fmt(s)}</option>`).join('');
   $('#setBriefSec').innerHTML = BRIEF_SEC.map((s,i)=>`<option value="${i}"${i===2?' selected':''}>${s===0?'なし':s+'秒'}</option>`).join('');
+  $('#setPace').innerHTML = ['出さない','ゆっくり（6秒に1語）','ふつう（4.5秒に1語）','はやい（3.5秒に1語）']
+    .map((t,i)=>`<option value="${i}"${i===2?' selected':''}>${t}</option>`).join('');
   sel.onchange = onPresetChange; onPresetChange();
   $('#setLo').oninput = $('#setHi').oninput = updateRangeInfo;
   segInit('#setRounds'); segInit('#setJudge');
@@ -862,10 +981,11 @@ function makeCode(){
     rsIdx: +$('#setRoundSec').value,
     bfIdx: +$('#setBriefSec').value,
     judge: segVal('#setJudge'),
+    pace: +$('#setPace').value,
     practice: $('#setPractice').checked,
     rotate:   $('#setRotate').checked,
     tts:      $('#setTts').checked,
-    seed: Math.floor(Math.random()*32)
+    seed: Math.floor(Math.random()*8)
   };
   const code = encodeGame(cfg);
   T.cfg = decodeGame(code);
@@ -881,8 +1001,8 @@ function buildPhases(){
   const c=T.cfg; T.phases=[];
   if(c.practice) T.phases.push({t:'練習（30秒・採点なし）', sec:30});
   for(let r=1;r<=c.rounds;r++){
-    T.phases.push({t:`ラウンド ${r} / ${c.rounds}`, sec:c.roundSec});
-    if(r<c.rounds && c.briefSec) T.phases.push({t:'作戦タイム', sec:c.briefSec});
+    T.phases.push({t:`第${r}区 / ${c.rounds}`, sec:c.roundSec});
+    if(r<c.rounds && c.briefSec) T.phases.push({t:'中継所', sec:c.briefSec});
   }
   T.pi=0;
 }
@@ -966,16 +1086,18 @@ function doAward(){
     if(!s.length) return '';
     const cls=['g','s','b','',''];
     return s.map((x,i)=>`<div class="medal ${cls[i]}"><div class="rk">${i+1}</div>`
-      + `<div class="nm">${x.no}班</div><div class="pt">${x[key]>0&&key==='growth'?'+':''}${x[key]}<span class="sm mut"> ${unit}</span></div></div>`).join('');
+      + `<div class="nm">${x.no}班</div><div class="pt">${x[key]>0&&key==='growthM'?'+':''}`
+      + `${Number(x[key]).toLocaleString('en-US')}<span class="sm mut"> ${unit}</span></div></div>`).join('');
   };
-  let h = mism.length ? `<div class="warnbox"><b>入力欄がちがうかもしれません：</b>${esc(mism.join('／'))}<br>点数は「欄の班番号」で集計しています。</div>` : '';
-  h += `<h2>総合（正解数）</h2>${rank(rows,'score','語')}`;
+  let h = mism.length ? `<div class="warnbox"><b>入力欄がちがうかもしれません：</b>${esc(mism.join('／'))}<br>記録は「欄の班番号」で集計しています。</div>` : '';
+  rows.forEach(r=>{ r.dist = r.score*100; if(r.growth!=null) r.growthM = r.growth*100; });
+  h += `<h2>総合順位（走破距離）</h2>${rank(rows,'dist','m')}`;
   const withCode = rows.filter(r=>r.ok);
   if(withCode.length){
-    h += `<h2>最大コンボ賞</h2>${rank(withCode,'combo','連続')}`;
-    h += `<h2>伸び賞（最終ラウンド − 第1ラウンド）</h2>${rank(withCode,'growth','語')}`;
+    h += `<h2>最長スパート賞（連続正解）</h2>${rank(withCode,'combo','連続')}`;
+    h += `<h2>ごぼう抜き賞（最終区 − 第1区）</h2>${rank(withCode,'growthM','m')}`;
   } else {
-    h += `<div class="note">点数だけの入力だったので、コンボ賞・伸び賞は出せません。各班の<b>結果コード</b>を入力すると表彰が増えます。</div>`;
+    h += `<div class="note">点数だけの入力だったので、スパート賞・ごぼう抜き賞は出せません。各班の<b>結果コード</b>を入力すると表彰が増えます。</div>`;
   }
   h += `<div class="note" style="margin-top:18px"><b>この後のひと工夫</b><br>各班の端末の結果画面に「まだ言えないことば」が残っています。机間巡視で拾って、次の時間の復習に使ってください。</div>`;
   $('#awardBody').innerHTML = h;
@@ -988,12 +1110,103 @@ function doAward(){
 const G = {
   cfg:null, code:'', team:1, size:2, names:[], pool:[],
   round:0, mode:'voice', queue:[], i:0,
-  score:0, roundScores:[], combo:0, maxCombo:0, seen:0,
+  score:0, roundScores:[], combo:0, maxCombo:0, seen:0, rHits:0,
   missed:[], weak:[], carry:[],
   running:false, locked:true, endAt:0, total:0, timer:0, briefTimer:0,
   gate:0, nearCount:0, word:null, answers:[],
   practice:false, rematch:false, didPractice:false
 };
+
+/* =========================================================================
+   ことば駅伝のコース。1語＝100m。カメラは自分のランナーを追い、背景を視差で流す。
+   ゴーストは「第1区＝設定したペース／第2区以降＝自分の前の区の記録」。
+   ========================================================================= */
+const M_HIT = 100, M2PX = .55;
+const SASH  = ['#5ad1ff','#ff8fb1','#9be36d'];
+const CO = { raf:0, cam:0, w:320, base:100, pace:0, name:'', posts:[] };
+let lastSpeaker = -1;
+
+function courseInit(){
+  const box=$('#course'); if(!box) return;
+  CO.cam=0; CO.w=box.clientWidth||320; CO.base=CO.w*.32;
+  if(!CO.posts.length){
+    const holder=$('#cPosts');
+    for(let i=0;i<9;i++){
+      const d=document.createElement('div'); d.className='c-post';
+      d.appendChild(document.createElement('b')); holder.appendChild(d); CO.posts.push(d);
+    }
+  }
+  let mps=0; CO.name='ペース';
+  if(G.cfg && G.cfg.pace>0 && !G.practice && !G.rematch){
+    const prev = G.roundScores[G.round-2];
+    if(G.round>=2 && prev>0){ mps = prev*M_HIT/G.cfg.roundSec; CO.name='前の区'; }
+    else mps = M_HIT/PACE_S[G.cfg.pace];
+  }
+  CO.pace=mps;
+  const gh=$('#cGhost');
+  gh.classList.toggle('hide', !(mps>0));
+  gh.style.setProperty('--rc','#8f9ac4'); gh.style.setProperty('--sc','#cfd6f2');
+  $('#cGhostLab').textContent = '';
+  $('#cMe').classList.remove('dash');
+  lastSpeaker=-1; setSash(0);
+  $('#cDist').textContent='この区 0 m'; $('#cDist').style.color='';
+  courseStop(); CO.raf=requestAnimationFrame(courseFrame);
+}
+function courseStop(){ if(CO.raf) cancelAnimationFrame(CO.raf); CO.raf=0; }
+function setSash(i){
+  const me=$('#cMe'); if(!me) return;
+  me.style.setProperty('--rc','#2f7fff');
+  me.style.setProperty('--sc', SASH[i]||SASH[0]);
+}
+function courseFrame(){
+  CO.raf = requestAnimationFrame(courseFrame);
+  const box=$('#course'); if(!box || !box.offsetParent) return;
+  const w=box.clientWidth||CO.w; CO.w=w; CO.base=w*.32;
+  const myM = G.rHits*M_HIT;
+  CO.cam += (myM-CO.cam)*.12;
+  const off = CO.cam*M2PX;
+  $('#cFar').style.backgroundPositionX  = (-off*.28).toFixed(1)+'px';
+  $('#cMid').style.backgroundPositionX  = (-off*.85).toFixed(1)+'px';
+  $('#cLane').style.backgroundPositionX = (-off*1.25).toFixed(1)+'px';
+  const x = m => CO.base + (m-CO.cam)*M2PX;
+  $('#cMe').style.left = x(myM).toFixed(1)+'px';
+  const dEl=$('#cDist');
+  if(CO.pace>0){
+    /* カウントダウン中は G.endAt がまだ 0。走り出す前にゴーストを進めない。 */
+    const left = G.running ? Math.max(0, G.endAt-Date.now()) : G.total;
+    const gm = CO.pace * Math.max(0, (G.total-left)/1000);
+    $('#cGhost').style.left = Math.min(w-14, Math.max(14, x(gm))).toFixed(1)+'px';
+    const d = Math.round(myM-gm);
+    dEl.textContent = CO.name+(d>=0?' +':' ')+d.toLocaleString('en-US')+'m';
+    dEl.style.color = d>=0 ? 'var(--ok)' : 'var(--near)';
+  } else {
+    dEl.textContent = 'この区 '+myM.toLocaleString('en-US')+' m';
+    dEl.style.color = '';
+  }
+  paintPosts(w);
+}
+function paintPosts(w){
+  const leftM  = CO.cam - CO.base/M2PX;
+  const rightM = CO.cam + (w-CO.base)/M2PX;
+  let i=0;
+  for(let m=Math.max(0, Math.ceil(leftM/500)*500); m<=rightM && i<CO.posts.length; m+=500, i++){
+    const el=CO.posts[i];
+    el.style.display='block';
+    el.style.left = (CO.base+(m-CO.cam)*M2PX).toFixed(1)+'px';
+    if(el.dataset.m!==String(m)){
+      el.dataset.m=String(m);
+      el.firstChild.textContent = m===0 ? 'START' : (m%1000===0 ? (m/1000)+'km' : m+'m');
+    }
+  }
+  for(;i<CO.posts.length;i++) CO.posts[i].style.display='none';
+}
+function goalOverlay(cb){
+  const el=$('#big3');
+  const head = G.practice ? '練習おわり' : G.rematch ? 'リターンマッチ終了' : `第${G.round}区 ゴール！`;
+  el.className='big3 msg on';
+  el.innerHTML = esc(head) + `<small>走破 ${(G.rHits*M_HIT).toLocaleString('en-US')} m（${G.rHits}語）</small>`;
+  setTimeout(()=>{ el.className='big3'; el.textContent=''; cb(); }, 1700);
+}
 
 function initTeam(){
   const sel=$('#teamNo');
@@ -1044,7 +1257,7 @@ function startRound(kind, round){
   else                G.queue = buildQueue(round);
   if(!G.queue.length){ toast('出題できることばがありません'); return; }
 
-  G.i=0; G.combo=0; G.missed=[]; G.nearCount=0; G.locked=true; G.running=false;
+  G.i=0; G.combo=0; G.missed=[]; G.nearCount=0; G.locked=true; G.running=false; G.rHits=0;
   if(!G.practice && !G.rematch) G.roundScores[round-1]=0;
   const sec = G.practice ? 30 : G.rematch ? 60 : G.cfg.roundSec;
   G.total = sec*1000;
@@ -1058,6 +1271,7 @@ function startRound(kind, round){
   paintHud();
   show('s-play');
   keepAwake(true);
+  courseInit();
 
   countdown(()=>{
     G.running=true; G.locked=false;
@@ -1072,13 +1286,13 @@ function countdown(cb){
   el.textContent=n; el.classList.add('on');
   const iv=setInterval(()=>{
     n--;
-    if(n<=0){ clearInterval(iv); el.classList.remove('on'); cb(); }
+    if(n<=0){ clearInterval(iv); el.className='big3'; el.textContent=''; cb(); }
     else el.textContent=n;
   }, 700);
 }
 
 function nextWord(){
-  G.locked=false; G.nearCount=0; G.gate=Date.now()+280;
+  G.locked=false; G.nearCount=0; G.gate=Date.now()+550; dropSpoken();
   setHeard(G.mode==='type' ? 'キーボード入力' : '', '');
   if(!G.running) return;
   if(G.i>=G.queue.length){
@@ -1116,10 +1330,12 @@ function markMissed(row){
 
 function onCorrect(){
   if(!G.running||G.locked) return;
-  G.locked=true;
+  G.locked=true; dropSpoken();
   revealAnswer(true);
   $('#pCard').classList.add('right');
   G.combo++; if(G.combo>G.maxCombo) G.maxCombo=G.combo;
+  G.rHits++;
+  $('#cMe').classList.toggle('dash', G.combo>=3);
   if(!G.practice && !G.rematch){
     G.score++;
     G.roundScores[G.round-1] = (G.roundScores[G.round-1]||0)+1;
@@ -1131,23 +1347,28 @@ function onCorrect(){
 }
 function onPass(){
   if(!G.running||G.locked) return;
-  G.locked=true; G.combo=0;
+  G.locked=true; G.combo=0; dropSpoken();
+  $('#cMe').classList.remove('dash');
   markMissed(G.word);
   revealAnswer(false);
   paintHud();
   setTimeout(()=>{ G.i++; nextWord(); }, 850);
 }
 
-function playHeard(texts, fin){
+/* 対抗戦なので「おしい」の自動正解は 恋のことのは より厳しくする。
+   点が絡む以上、言っていないのに入るほうが、言ったのに入らないより害が大きい。 */
+const NEARB = { normal:{show:.56,cnt:4}, soft:{show:.46,cnt:3}, very:{show:.38,cnt:2} };
+function playHeard(texts, fin, interim, top){
   if(!G.running||G.locked||Date.now()<G.gate) return;
-  setHeard(texts[0].trim(),'');
-  for(const t of texts) if(judge(t, G.answers).ok){ setHeard(texts[0].trim(),'hit'); onCorrect(); return; }
-  const NL = nearLevel();
-  const nr = Math.max.apply(null, texts.map(t=>judge(t, G.answers).near));
+  setHeard(texts[0],'');
+  for(const t of texts) if(judge(t, G.answers).ok){ setHeard(texts[0],'hit'); onCorrect(); return; }
+  const NL = NEARB[(window.CFG && window.CFG.judge) || 'soft'] || NEARB.soft;
+  const pool = (top && top.length) ? top : texts;
+  const nr = Math.max.apply(null, pool.map(t=>judge(t, G.answers).near));
   if(nr>=NL.show){
     if(fin) G.nearCount++;
-    if(G.nearCount>=NL.cnt){ setHeard(texts[0].trim(),'hit'); onCorrect(); return; }
-    setHeard(texts[0].trim()+'　…おしい','near');
+    if(G.nearCount>=NL.cnt){ setHeard(texts[0],'hit'); onCorrect(); return; }
+    setHeard(texts[0]+'　…おしい','near');
   }
 }
 function setMode(m){
@@ -1181,11 +1402,14 @@ function endRound(){
   if(!G.running) return;
   G.running=false; G.locked=true;
   clearInterval(G.timer); stopRec(); keepAwake(false);
-  if(G.practice){ G.didPractice=true; showReadyReal(); return; }
-  if(G.rematch){ paintResult(); show('s-result'); return; }
-  G.carry = G.missed.slice();
-  if(G.round < G.cfg.rounds) showBrief();
-  else { paintResult(); show('s-result'); }
+  goalOverlay(()=>{
+    courseStop();
+    if(G.practice){ G.didPractice=true; showReadyReal(); return; }
+    if(G.rematch){ paintResult(); show('s-result'); return; }
+    G.carry = G.missed.slice();
+    if(G.round < G.cfg.rounds) showBrief();
+    else { paintResult(); show('s-result'); }
+  });
 }
 
 function wordRow(r){
@@ -1199,8 +1423,8 @@ function bindSay(sel){ $(sel).querySelectorAll('[data-say]').forEach(b=> b.oncli
 function showBrief(){
   const list = G.missed.length ? G.missed : G.weak;
   $('#briefLead').textContent = G.missed.length
-    ? 'このラウンドで言えなかったことばです。声に出して確認！ 次のラウンドでまた出ます。'
-    : 'ぜんぶ言えました。次のラウンドも一気にいこう。';
+    ? 'この区で言えなかったことばです。声に出して確認！ 次の区でまた出ます。'
+    : 'ぜんぶ言えました。次の区も一気にいこう。';
   $('#briefList').innerHTML = list.length ? list.map(r=>wordRow(r)).join('') : '<div class="mut sm center">なし</div>';
   bindSay('#briefList');
   show('s-brief');
@@ -1230,10 +1454,11 @@ function paintResult(){
 
   const nm = G.names.filter(Boolean);
   $('#resTeam').textContent = G.team+'班' + (nm.length? '（'+nm.join('・')+'）' : '');
-  $('#resScore').textContent = G.score;
+  $('#resScore').textContent = (G.score*M_HIT).toLocaleString('en-US');
+  const wEl=$('#resWords'); if(wEl) wEl.textContent = G.score;
   $('#resDetail').innerHTML =
-      'ラウンド別　' + G.roundScores.map((s,i)=>`${i+1}R <b>${s||0}</b>`).join('　／　')
-    + `<br>最大コンボ <b>${G.maxCombo}</b>　伸び <b>${(last-first>0?'+':'')+(last-first)}</b>`
+      '区間記録　' + G.roundScores.map((s,i)=>`第${i+1}区 <b>${(s||0)*M_HIT}m</b>`).join('　／　')
+    + `<br>最長スパート <b>${G.maxCombo}</b>連続　ごぼう抜き <b>${(last-first>0?'+':'')+(last-first)*M_HIT}m</b>`
     + `　挑戦 <b>${G.seen}</b> 語`;
   $('#resCode').textContent = rc;
   $('#resWeak').innerHTML = G.weak.length ? G.weak.map(r=>wordRow(r)).join('')
@@ -1243,21 +1468,28 @@ function paintResult(){
 }
 
 function paintHud(){
-  $('#pRound').textContent = G.practice ? '練習（採点なし）'
-    : G.rematch ? 'リターンマッチ' : `ラウンド ${G.round}/${G.cfg.rounds}`;
-  $('#pScore').textContent = (G.practice||G.rematch) ? '—' : G.score;
-  $('#pHint').textContent = G.combo>=2 ? G.combo+' 連続中！' : '';
+  $('#pRound').textContent = G.practice ? '練習（記録なし）'
+    : G.rematch ? 'リターンマッチ' : `第${G.round}区 / ${G.cfg.rounds}`;
+  $('#pScore').textContent = (G.practice||G.rematch) ? '—' : '計 '+(G.score*M_HIT).toLocaleString('en-US')+'m';
+  $('#pHint').textContent = `${G.rHits}語` + (G.combo>=2 ? `　${G.combo}連続！` : '');
 }
 function paintSpeaker(){
   const el=$('#pSpeaker');
-  if(!G.cfg.rotate || G.size<2){ el.classList.add('hide'); return; }
-  const idx=(G.seen-1)%G.size;
+  if(!G.cfg.rotate || G.size<2){ el.classList.add('hide'); setSash(0); return; }
+  const idx=Math.max(0,G.seen-1)%G.size;
   const nm=((G.names[idx]||'').trim()) || (idx+1)+'人目';
   el.className='speaker s'+idx;
-  el.textContent='話す人：'+nm;
+  el.textContent='たすき：'+nm;
+  if(idx!==lastSpeaker){
+    lastSpeaker=idx; setSash(idx);
+    const b=$('#cBaton');
+    b.textContent = (G.seen<=1 ? 'スタート　' : 'たすき → ') + nm;
+    b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+  }
 }
 function comboFx(n){
-  const el=$('#comboFx'); el.textContent=n+' COMBO!';
+  const el=$('#cCombo'); if(!el) return;
+  el.textContent = n+'連続！　追い風';
   el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
 }
 function setHeard(t,cls){ const el=$('#pHeard'); el.textContent=t||'—'; el.className='hv'+(cls?' '+cls:''); }
@@ -1272,7 +1504,7 @@ function showReadyPractice(){
 }
 function showReadyReal(){
   $('#readyTitle').textContent='本番！';
-  $('#readyGo').textContent='本番スタート（先生の合図で）';
+  $('#readyGo').textContent='第1区 スタート（先生の合図で）';
   $('#readySkip').classList.add('hide');
   $('#ruleRotate').classList.toggle('hide', !G.cfg.rotate);
   $('#readyMsg').textContent='';
@@ -1281,7 +1513,7 @@ function showReadyReal(){
 function leavePlay(){
   G.running=false; G.locked=true;
   clearInterval(G.timer); clearInterval(G.briefTimer);
-  stopRec(); keepAwake(false); onHeard=null;
+  courseStop(); stopRec(); keepAwake(false); onHeard=null;
 }
 
 /* =========================================================================
@@ -1341,7 +1573,7 @@ $('#readyGo').onclick = ()=>{
 $('#readySkip').onclick = ()=>{ G.didPractice=true; $('#readyGo').click(); };
 $('#pPass').onclick = onPass;
 $('#pMode').onclick = ()=> setMode(G.mode==='voice' ? 'type' : 'voice');
-$('#pQuit').onclick = ()=>{ if(confirm('このラウンドを中止しますか？')){ leavePlay(); showReadyReal(); } };
+$('#pQuit').onclick = ()=>{ if(confirm('この区間を中止しますか？')){ leavePlay(); showReadyReal(); } };
 $('#pType').addEventListener('keydown', e=>{
   if(e.key!=='Enter') return;
   const v=e.target.value.trim(); if(!v) return;

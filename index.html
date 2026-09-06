@@ -5,6 +5,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <title>声単 こえたん｜ことば駅伝</title>
+
+<script>
+/* =====================================================================
+   ★ ライブ順位を使うときは、ここに Realtime Database の URL を貼ってください。
+     例）dbURL: "https://koetan-default-rtdb.asia-southeast1.firebasedatabase.app"
+     空のままなら、今までどおり結果コードを読み上げる方式で動きます。
+   ===================================================================== */
+window.FB = {
+  dbURL: "https://koetan-e8977-default-rtdb.asia-southeast1.firebasedatabase.app"
+};
+</script>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -376,11 +387,21 @@ li{margin:.35em 0}
     <div class="sm mut" id="hostPhase">ラウンド 1 / 3</div>
     <div class="bigtime" id="hostTime">3:00</div>
     <div class="row" style="margin-top:12px">
-      <button class="btn primary" id="hostStart">スタート</button>
-      <button class="btn" id="hostPause">一時停止</button>
-      <button class="btn ghost" id="hostReset">リセット</button>
+      <button class="btn primary" id="hostStart" style="font-size:15px;padding:13px 8px">スタート</button>
+      <button class="btn" id="hostPause" style="font-size:15px;padding:13px 8px">一時停止</button>
+      <button class="btn ghost" id="hostReset" style="font-size:15px;padding:13px 8px">リセット</button>
     </div>
     <div class="xs mut" style="margin-top:10px">これは<b>合図用のタイマー</b>です。「よーい、スタート！」の声で、各班にも同時に画面をタップさせてください。</div>
+  </div>
+
+  <div class="card" id="liveWrap">
+    <div class="row" style="align-items:center;gap:8px">
+      <div class="sm mut" style="flex:1">参加 <b id="liveCount" style="font-size:19px;color:var(--fg)">0</b> 班　
+        ゴール <b id="liveDone" style="font-size:19px;color:var(--fg)">0</b> 班</div>
+      <div class="sm" id="liveState" style="flex:0 0 auto"></div>
+    </div>
+    <div id="liveBoard" style="margin-top:8px"></div>
+    <button class="btn ghost block sm" id="liveReset" style="margin-top:10px;padding:9px">参加をリセット</button>
   </div>
 
   <div class="note">
@@ -400,6 +421,8 @@ li{margin:.35em 0}
 <section class="screen" id="s-tally">
   <h1>結果を集計する</h1>
   <p class="sm mut">各班の画面に出ている<b>結果コード（6文字）</b>を入力してください。口頭で点数だけ聞く場合は、数字だけでもOKです。</p>
+  <div class="note" id="tallyNote" style="display:none"></div>
+  <button class="btn block" id="tallyPull" style="display:none;margin-bottom:12px">サーバーからもう一度読み込む</button>
   <div class="field">
     <label>班の数</label>
     <select id="tallyN"></select>
@@ -764,6 +787,71 @@ const RUN=[ART.runA,ART.runB,ART.runC];</script>
 <script>
 /* 判定エンジンが参照する設定オブジェクト（恋のことのは と同じ約束事） */
 window.CFG = { judge:'soft' };
+
+/* =========================================================================
+   Realtime Database との通信。SDK は読み込まず REST だけで済ませる。
+   学校のネットワークで CDN が塞がれても動くこと、1ファイルのままでいることを優先。
+   送るのは 班番号・正解数・コンボ・区間別・つまずいた語番号 だけ。名前は送らない。
+   ========================================================================= */
+const NET = (()=>{
+  const base = () => String((window.FB && FB.dbURL) || '').replace(/\/+$/,'');
+  const on   = () => /^https?:\/\//.test(base());
+  const url  = p => base() + '/' + p + '.json';
+  const jfetch = (p, opt) => fetch(url(p), opt).then(r=>{
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.status===204 ? null : r.json();
+  });
+  return {
+    on, url,
+    get:   p       => jfetch(p),
+    put:   (p,d)   => jfetch(p, {method:'PUT',   body:JSON.stringify(d)}),
+    patch: (p,d)   => jfetch(p, {method:'PATCH', body:JSON.stringify(d)}),
+    del:   p       => jfetch(p, {method:'DELETE'}),
+
+    /* teams の下を購読する。EventSource が使えない環境ではポーリングに落ちる。 */
+    stream(path, onData, onState){
+      let es=null, timer=0, state={};
+      const parts = p => String(p||'/').split('/').filter(Boolean);
+      const setAt = (o,p,v)=>{
+        const ps=parts(p);
+        if(!ps.length) return v===null?{}:(v||{});
+        let cur=o;
+        for(let i=0;i<ps.length-1;i++){ cur[ps[i]] = cur[ps[i]]||{}; cur=cur[ps[i]]; }
+        if(v===null) delete cur[ps[ps.length-1]]; else cur[ps[ps.length-1]]=v;
+        return o;
+      };
+      const poll = ()=>{
+        clearInterval(timer);
+        onState && onState('poll');
+        timer = setInterval(()=>{
+          NET.get(path).then(d=>{ state = d||{}; onData(state); onState && onState('poll'); })
+                       .catch(()=>onState && onState('ng'));
+        }, 2500);
+        NET.get(path).then(d=>{ state=d||{}; onData(state); }).catch(()=>{});
+      };
+      try{
+        es = new EventSource(url(path));
+        es.addEventListener('put', e=>{
+          const m = JSON.parse(e.data);
+          state = setAt(state, m.path, m.data);
+          onData(state); onState && onState('live');
+        });
+        es.addEventListener('patch', e=>{
+          const m = JSON.parse(e.data), ps = parts(m.path);
+          let cur = state;
+          for(const k of ps){ cur[k] = cur[k]||{}; cur = cur[k]; }
+          Object.keys(m.data||{}).forEach(k=>{
+            if(m.data[k]===null) delete cur[k]; else cur[k]=m.data[k];
+          });
+          onData(state); onState && onState('live');
+        });
+        es.onopen  = ()=> onState && onState('live');
+        es.onerror = ()=>{ try{ es.close(); }catch(_){} es=null; poll(); };
+      }catch(_){ poll(); }
+      return ()=>{ try{ es && es.close(); }catch(_){} clearInterval(timer); };
+    }
+  };
+})();
 </script>
 <script>
 /* =========================================================================
@@ -965,7 +1053,8 @@ async function keepAwake(on){
 /* =========================================================================
    教師側
    ========================================================================= */
-const T = { cfg:null, phases:[], pi:0, endAt:0, timer:0, paused:false, left:0, results:[] };
+const T = { cfg:null, phases:[], pi:0, endAt:0, timer:0, paused:false, left:0,
+             live:{}, fromNet:{}, stop:null };
 
 function initSetup(){
   const sel=$('#setPreset');
@@ -1016,10 +1105,28 @@ function makeCode(){
     practice: $('#setPractice').checked,
     rotate:   $('#setRotate').checked,
     tts:      $('#setTts').checked,
-    seed: Math.floor(Math.random()*8)
+    seed: 0
   };
-  const code = encodeGame(cfg);
+  if(!NET.on()){ openHost(encodeGame({...cfg, seed:Math.floor(Math.random()*8)})); return; }
+  /* コードは設定から作られるので、同じ設定だと同じコードになる。
+     まだ使われていない席（seed）を探してから部屋を開く。 */
+  const seeds=[0,1,2,3,4,5,6,7];
+  for(let i=seeds.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [seeds[i],seeds[j]]=[seeds[j],seeds[i]]; }
+  (function tryOne(i){
+    if(i>=seeds.length) return openHost(encodeGame({...cfg, seed:seeds[0]}));
+    const code = encodeGame({...cfg, seed:seeds[i]});
+    NET.get('rooms/'+code+'/info')
+      .then(info=>{
+        if(info && info.at && Date.now()-info.at < 3*3600e3) tryOne(i+1);
+        else openHost(code);
+      })
+      .catch(()=>openHost(code));
+  })(0);
+}
+
+function openHost(code){
   T.cfg = decodeGame(code);
+  T.live = {}; T.fromNet = {};
   $('#hostCode').textContent = code;
   $('#hostCode2').textContent = code;
   try{ $('#hostUrl').textContent = location.origin==='null' ? '' : decodeURI(location.origin+location.pathname); }
@@ -1027,6 +1134,54 @@ function makeCode(){
   $('#hostSummary').textContent = summaryOf(T.cfg);
   buildPhases(); resetHostTimer();
   show('s-host');
+  startLive();
+}
+
+/* ---------- ライブ順位 ---------- */
+function setLiveState(k){
+  const el=$('#liveState');
+  const t = { live:['つながっています','var(--ok)'], poll:['更新中','var(--acc)'],
+              ng:['つながりません','var(--ng)'], off:['ライブ順位オフ','var(--mut)'] }[k] || ['','' ];
+  el.textContent = t[0]; el.style.color = t[1];
+}
+function startLive(){
+  stopLive();
+  if(!NET.on()){
+    setLiveState('off');
+    $('#liveBoard').innerHTML =
+      '<div class="sm mut center">ファイル冒頭の <b>FB.dbURL</b> にデータベースの URL を貼ると、'
+      + 'ここに参加した班と順位がリアルタイムで出ます。</div>';
+    $('#liveReset').style.display='none';
+    return;
+  }
+  $('#liveReset').style.display='';
+  setLiveState('poll');
+  NET.put('rooms/'+T.cfg.code+'/info',
+          {at:Date.now(), r:T.cfg.rounds, sec:T.cfg.roundSec}).catch(()=>setLiveState('ng'));
+  T.stop = NET.stream('rooms/'+T.cfg.code+'/teams', renderLive, setLiveState);
+}
+function stopLive(){ if(T.stop){ try{ T.stop(); }catch(_){} T.stop=null; } }
+function liveRows(){
+  return Object.keys(T.live||{})
+    .map(k=>({ no:+k, ...(T.live[k]||{}) }))
+    .filter(r=>Number.isFinite(r.no) && r.no>0)
+    .sort((a,b)=>(b.s||0)-(a.s||0) || a.no-b.no);
+}
+function renderLive(teams){
+  T.live = teams || {};
+  const rows = liveRows();
+  $('#liveCount').textContent = rows.length;
+  $('#liveDone').textContent  = rows.filter(r=>r.d).length;
+  const cls=['g','s','b','',''];
+  $('#liveBoard').innerHTML = rows.length
+    ? rows.slice(0,8).map((r,i)=>
+        `<div class="medal ${cls[i]||''}" style="padding:8px 12px;margin:5px 0">`
+        + `<div class="rk" style="font-size:20px">${i+1}</div>`
+        + `<div class="nm" style="font-size:16px">${r.no}班`
+        + (r.d ? ' <span class="xs mut">ゴール</span>' : '') + `</div>`
+        + `<div class="pt" style="font-size:18px">${((r.s||0)*100).toLocaleString('en-US')}`
+        + `<span class="xs mut"> m</span></div></div>`).join('')
+    : '<div class="sm mut center">まだ誰も参加していません</div>';
 }
 function buildPhases(){
   const c=T.cfg; T.phases=[];
@@ -1070,6 +1225,32 @@ function initTally(){
     sel.innerHTML=h; sel.onchange=paintTallyGrid;
   }
   paintTallyGrid();
+  $('#tallyPull').style.display = NET.on() ? '' : 'none';
+  pullTally();
+}
+
+/* サーバーに届いている記録で、集計欄を埋める。手打ちはしなくてよくなる。 */
+function pullTally(){
+  const rows = liveRows();
+  const note = $('#tallyNote');
+  if(!rows.length){ note.style.display='none'; return; }
+  const need = Math.min(40, Math.max(+$('#tallyN').value, ...rows.map(r=>r.no)));
+  if(need !== +$('#tallyN').value){ $('#tallyN').value = need; paintTallyGrid(); }
+  T.fromNet = {};
+  rows.forEach(r=>{
+    const inp = document.querySelector(`#tallyGrid input[data-team="${r.no}"]`);
+    if(!inp) return;
+    inp.value = String(r.s || 0);
+    inp.oninput();
+    const rs = String(r.rs||'').split(',').map(Number).filter(x=>!isNaN(x));
+    T.fromNet[r.no] = { combo: r.c||0,
+                        growth: rs.length>1 ? rs[rs.length-1]-rs[0] : 0,
+                        weak: String(r.w||''), done: !!r.d };
+  });
+  const done = rows.filter(r=>r.d).length;
+  note.style.display='';
+  note.innerHTML = `<b>${rows.length}班</b>ぶんをサーバーから読み込みました（走り終えたのは ${done}班）。`
+    + `数字はその場で直せます。`;
 }
 function paintTallyGrid(){
   const n=+$('#tallyN').value;
@@ -1105,11 +1286,27 @@ function parseTally(no, raw){
   }
   return { bad:true };
 }
+/* 全班のつまずいた語を数え上げる。クラスの弱点がそのまま次の授業の教材になる。 */
+function weakTop(){
+  const cnt = {};
+  Object.keys(T.fromNet||{}).forEach(k=>{
+    String((T.fromNet[k]||{}).weak||'').split(',').forEach(x=>{
+      const n = +x; if(n) cnt[n] = (cnt[n]||0)+1;
+    });
+  });
+  return Object.keys(cnt).map(n=>({n:+n, c:cnt[n]}))
+    .sort((a,b)=> b.c-a.c || a.n-b.n).slice(0,5);
+}
 function doAward(){
   const rows=[], mism=[];
   $('#tallyGrid').querySelectorAll('input').forEach(inp=>{
     const no=+inp.dataset.team, r=parseTally(no, inp.value);
-    if(r && !r.bad){ rows.push({ no, ...r }); if(r.ok && r.team!==no) mism.push(no+'班の欄に'+r.team+'班のコード'); }
+    if(!r || r.bad) return;
+    const row = { no, ...r };
+    const net = T.fromNet && T.fromNet[no];
+    if(net && row.combo==null){ row.combo = net.combo; row.growth = net.growth; }  /* 手打ちを補う */
+    rows.push(row);
+    if(r.ok && r.team!==no) mism.push(no+'班の欄に'+r.team+'班のコード');
   });
   if(!rows.length){ toast('まだ入力がありません'); return; }
   const rank = (list, key, unit) => {
@@ -1123,14 +1320,27 @@ function doAward(){
   let h = mism.length ? `<div class="warnbox"><b>入力欄がちがうかもしれません：</b>${esc(mism.join('／'))}<br>記録は「欄の班番号」で集計しています。</div>` : '';
   rows.forEach(r=>{ r.dist = r.score*100; if(r.growth!=null) r.growthM = r.growth*100; });
   h += `<h2>総合順位（走破距離）</h2>${rank(rows,'dist','m')}`;
-  const withCode = rows.filter(r=>r.ok);
-  if(withCode.length){
-    h += `<h2>最長スパート賞（連続正解）</h2>${rank(withCode,'combo','連続')}`;
-    h += `<h2>ごぼう抜き賞（最終区 − 第1区）</h2>${rank(withCode,'growthM','m')}`;
+  const detailed = rows.filter(r=>r.combo!=null);
+  if(detailed.length){
+    h += `<h2>最長スパート賞（連続正解）</h2>${rank(detailed,'combo','連続')}`;
+    h += `<h2>ごぼう抜き賞（最終区 − 第1区）</h2>${rank(detailed,'growthM','m')}`;
   } else {
-    h += `<div class="note">点数だけの入力だったので、スパート賞・ごぼう抜き賞は出せません。各班の<b>結果コード</b>を入力すると表彰が増えます。</div>`;
+    h += `<div class="note">点数だけの入力だったので、スパート賞・ごぼう抜き賞は出せません。各班の<b>結果コード</b>を入力するか、ライブ順位をオンにすると表彰が増えます。</div>`;
   }
-  h += `<div class="note" style="margin-top:18px"><b>この後のひと工夫</b><br>各班の端末の結果画面に「まだ言えないことば」が残っています。机間巡視で拾って、次の時間の復習に使ってください。</div>`;
+  const weak = weakTop();
+  if(weak.length){
+    h += `<h2>クラス全体のつまずき TOP5</h2>`
+      +  `<div class="sm mut" style="margin:-4px 0 8px">この語を言えなかった班の数です。次の時間はここから。</div>`
+      +  weak.map(w=>{
+           const row = W.find(r=>r[0]===w.n) || [0,'','','',''];
+           const en  = String(row[4]).split(',')[0].trim();
+           return `<div class="wrow"><div class="en">${esc(en)}</div>`
+                + `<div class="ja">${esc(row[3])}</div>`
+                + `<div class="sm" style="font-weight:800;color:var(--near)">${w.c}班</div></div>`;
+         }).join('');
+  } else {
+    h += `<div class="note" style="margin-top:18px"><b>この後のひと工夫</b><br>各班の端末の結果画面に「まだ言えないことば」が残っています。机間巡視で拾って、次の時間の復習に使ってください。</div>`;
+  }
   $('#awardBody').innerHTML = h;
   show('s-award');
 }
@@ -1249,6 +1459,29 @@ function goalOverlay(cb){
     + `<small>走破 ${(G.rHits*M_HIT).toLocaleString('en-US')} m（${G.rHits}語）</small>`;
   setTimeout(()=>{ el.className='big3'; el.textContent=''; cb(); }, 1700);
 }
+
+/* 走行中の記録をサーバーへ送る。名前は送らず、班番号と数字だけ。
+   送信に失敗しても、結果コードで読み上げる従来の方法がそのまま残る。 */
+const REPORT = {
+  last:0,
+  path(){ return 'rooms/'+G.code+'/teams/'+G.team; },
+  body(done){
+    const o = { s:G.score, c:G.maxCombo, at:Date.now(),
+                rs:G.roundScores.map(x=>x||0).join(',') };
+    if(done){ o.d = 1; o.w = G.weak.slice(0,60).map(r=>r[0]).join(','); }
+    return o;
+  },
+  send(done){
+    if(!NET.on() || !G.code) return;
+    this.last = Date.now();
+    NET.patch(this.path(), this.body(done)).catch(()=>{});
+  },
+  tick(){                                  /* プレイ中は 2.5 秒に1回まで */
+    if(!NET.on()) return;
+    if(Date.now()-this.last < 2500) return;
+    this.send(false);
+  }
+};
 
 function initTeam(){
   const sel=$('#teamNo');
@@ -1437,6 +1670,7 @@ function startTick(){
     $('#pTime').textContent = fmt(Math.ceil(left/1000));
     $('#pBar').style.width = (G.total? left/G.total*100 : 0).toFixed(1)+'%';
     $('#pBarWrap').classList.toggle('warn', left<=10000);
+    if(!G.practice && !G.rematch) REPORT.tick();
     if(left<=0){ clearInterval(G.timer); endRound(); }
   }, 200);
 }
@@ -1444,6 +1678,7 @@ function endRound(){
   if(!G.running) return;
   G.running=false; G.locked=true;
   clearInterval(G.timer); stopRec(); keepAwake(false);
+  if(!G.practice && !G.rematch) REPORT.send(G.round >= G.cfg.rounds);
   goalOverlay(()=>{
     courseStop();
     if(G.practice){ G.didPractice=true; showReadyReal(); return; }
@@ -1566,7 +1801,11 @@ $('#goTeacher').onclick = ()=>{ show('s-setup'); updateRangeInfo(); };
 $('#goStudent').onclick = ()=>{ show('s-join'); setTimeout(()=>$('#joinCode').focus(), 60); };
 $('#goHelp').onclick    = ()=> show('s-help');
 $('#goMic').onclick     = ()=> show('s-mic');
-$$('[data-back]').forEach(b=>{ b.onclick = ()=>{ leavePlay(); show(b.dataset.back); }; });
+$$('[data-back]').forEach(b=>{ b.onclick = ()=>{
+  leavePlay();
+  if(b.dataset.back==='s-home') stopLive();
+  show(b.dataset.back);
+}; });
 
 $('#makeCode').onclick = makeCode;
 $('#goTally').onclick  = ()=>{ initTally(); show('s-tally'); };
@@ -1575,6 +1814,13 @@ $('#hostStart').onclick = ()=>{ if(T.phases.length && !T.timer) hostTick(); };
 $('#hostPause').onclick = ()=>{ if(T.timer){ clearInterval(T.timer); T.timer=0;
   T.left=Math.max(0,(T.endAt-Date.now())/1000); paintHost(); } };
 $('#hostReset').onclick = ()=>{ T.pi=0; resetHostTimer(); };
+$('#liveReset').onclick = ()=>{
+  if(!NET.on() || !T.cfg) return;
+  if(!confirm('参加した班の記録を消して、やり直しますか？')) return;
+  NET.del('rooms/'+T.cfg.code+'/teams').then(()=>{ T.live={}; renderLive({}); })
+    .catch(()=>toast('消せませんでした'));
+};
+$('#tallyPull').onclick = pullTally;
 
 $('#joinCode').addEventListener('input', e=>{
   e.target.value = e.target.value.toUpperCase().replace(/[^0-9A-Z]/g,'').slice(0,6);
@@ -1599,6 +1845,7 @@ $('#teamGo').onclick = ()=>{
   G.score=0; G.roundScores=[]; G.combo=0; G.maxCombo=0; G.seen=0;
   G.weak=[]; G.carry=[]; G.missed=[]; G.didPractice=false;
   G.mode = SRC ? 'voice' : 'type';
+  REPORT.send(false);                       /* 先生の画面に「参加した」を出す */
   if(G.cfg.practice) showReadyPractice(); else showReadyReal();
 };
 $('#readyGo').onclick = ()=>{

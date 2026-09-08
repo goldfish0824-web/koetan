@@ -117,6 +117,56 @@ input[type=checkbox]{width:20px;height:20px;vertical-align:-4px;accent-color:var
 @keyframes w{0%,100%{height:5px}50%{height:17px}}
 
 /* ---------- ことばリレー：コース ---------- */
+/* ---------- 表彰のくす玉 ---------- */
+.kusu{position:relative;height:186px;margin:6px 0 4px}
+.kusu-rope{position:absolute;left:50%;top:0;width:2px;height:52px;
+  background:linear-gradient(#9aa4cc,#5c6796);transform:translateX(-50%)}
+.kusu-ball{position:absolute;left:50%;top:48px;width:104px;height:104px;transform:translateX(-50%)}
+.kusu.shake .kusu-ball{animation:kshake .42s ease-in-out}
+@keyframes kshake{0%,100%{transform:translateX(-50%) rotate(0)}
+  25%{transform:translateX(-50%) rotate(-7deg)} 75%{transform:translateX(-50%) rotate(7deg)}}
+.kh{position:absolute;top:0;width:52px;height:104px;overflow:hidden;
+  background:repeating-linear-gradient(#e04b5a 0 13px,#fdfdfd 13px 26px);
+  box-shadow:inset 0 -10px 20px rgba(0,0,0,.30);
+  transition:transform .8s cubic-bezier(.34,1.35,.5,1)}
+.kh.l{left:0;border-radius:52px 0 0 52px;transform-origin:100% 6%;
+  box-shadow:inset -6px -10px 20px rgba(0,0,0,.32)}
+.kh.r{right:0;border-radius:0 52px 52px 0;transform-origin:0 6%;
+  box-shadow:inset 6px -10px 20px rgba(0,0,0,.32)}
+.kusu.open .kh.l{transform:rotate(-122deg)}
+.kusu.open .kh.r{transform:rotate(122deg)}
+.kusu-gold{position:absolute;left:50%;top:48px;width:104px;height:14px;margin-top:45px;
+  transform:translateX(-50%);background:linear-gradient(180deg,#ffe08a,#e0a63c);
+  border-radius:2px;opacity:.9;transition:opacity .3s}
+.kusu.open .kusu-gold{opacity:0}
+.kusu-banner{position:absolute;left:50%;top:94px;width:min(72vw,230px);padding:11px 0 13px;
+  transform:translateX(-50%) scaleY(0);transform-origin:top center;text-align:center;
+  background:linear-gradient(180deg,#fffdf4,#ffe6ad);color:#8c3a10;
+  font-weight:900;font-size:21px;letter-spacing:.28em;border-radius:0 0 7px 7px;
+  box-shadow:0 8px 22px rgba(0,0,0,.5);
+  transition:transform .62s cubic-bezier(.2,1.5,.4,1) .34s}
+.kusu.open .kusu-banner{transform:translateX(-50%) scaleY(1)}
+.kusu.reset .kh,.kusu.reset .kusu-banner,.kusu.reset .kusu-gold{transition:none}
+
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:70;overflow:hidden}
+.confetti i{position:absolute;width:9px;height:13px;border-radius:1px;opacity:0;
+  animation-name:cfall;animation-timing-function:cubic-bezier(.15,.55,.45,1);
+  animation-fill-mode:forwards}
+.confetti i.st{width:5px;border-radius:3px}
+@keyframes cfall{
+  0%  {opacity:0; transform:translate(-50%,-50%) rotate(0deg)}
+  7%  {opacity:1}
+  30% {transform:translate(calc(-50% + var(--dx) * .48), calc(-50% + var(--up))) rotate(calc(var(--rot) * .3))}
+  100%{opacity:0; transform:translate(calc(-50% + var(--dx)), calc(-50% + 96vh)) rotate(var(--rot))}
+}
+.medal{animation:medalIn .5s cubic-bezier(.2,1.25,.4,1) both}
+@keyframes medalIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  .confetti{display:none}
+  .kh,.kusu-banner{transition:none}
+  .medal{animation:none}
+}
+
 /* ---------- タイトルの表紙と、演出のカット ---------- */
 .hero{position:relative;height:min(46vw,205px);border-radius:18px;overflow:hidden;
   margin:2px 0 14px;background-size:cover;background-position:72% center;background-color:#241f3d}
@@ -461,14 +511,25 @@ li{margin:.35em 0}
 
 <!-- ================= TEACHER : AWARD ================= -->
 <section class="screen" id="s-award">
-  <h1 class="center">表彰</h1>
+  <div class="kusu" id="kusu">
+    <div class="kusu-rope"></div>
+    <div class="kusu-banner"><b>おめでとう</b></div>
+    <div class="kusu-ball">
+      <div class="kh l"></div><div class="kh r"></div>
+    </div>
+    <div class="kusu-gold"></div>
+  </div>
   <div id="awardBody"></div>
   <div style="height:14px"></div>
   <div class="row">
-    <button class="btn" data-back="s-tally">集計に戻る</button>
-    <button class="btn ghost" data-back="s-home">最初に戻る</button>
+    <button class="btn" data-back="s-tally" style="font-size:14px;padding:13px 6px">集計に戻る</button>
+    <button class="btn" id="awardAgain" style="font-size:14px;padding:13px 6px">もう一度</button>
+    <button class="btn ghost" data-back="s-home" style="font-size:14px;padding:13px 6px">最初に戻る</button>
   </div>
+  <div style="height:8px"></div>
+  <button class="btn ghost block sm" id="awardSound" style="padding:9px;font-size:13px"></button>
 </section>
+<div class="confetti" id="confetti"></div>
 
 <!-- ================= STUDENT : JOIN ================= -->
 <section class="screen" id="s-join">
@@ -1476,6 +1537,65 @@ function decodeResult(code){
   if(score > 999) return null;
   return { score, combo };
 }
+/* ---------- 表彰の演出 ----------
+   くす玉が割れて紙吹雪が舞い、ファンファーレが鳴る。
+   音は先生の画面でしか鳴らさないので、生徒の端末は mp3 を読みに行かない。
+   ファイルが無い／音が出せない環境でも、絵の演出だけ動いて先へ進める。 */
+let fanfare = null;
+let fanfareOn = (store.get('vb:fanfare') !== 'off');
+function paintSoundBtn(){
+  const b=$('#awardSound'); if(!b) return;
+  b.textContent = fanfareOn ? '🔊 ファンファーレ：鳴らす' : '🔈 ファンファーレ：鳴らさない';
+}
+function playFanfare(){
+  if(!fanfareOn) return;
+  try{
+    if(!fanfare){ fanfare = new Audio('bgm/fanfare.mp3'); fanfare.preload='auto'; }
+    fanfare.currentTime = 0; fanfare.volume = .9;
+    const p = fanfare.play();
+    if(p && p.catch) p.catch(()=>{});     /* ファイルが無くても黙って続ける */
+  }catch(_){}
+}
+function stopFanfare(){ try{ fanfare && fanfare.pause(); }catch(_){} }
+
+const CONF_COL = ['#ffd166','#ff6b81','#5ad1ff','#9be36d','#ffffff','#ff9f43','#c9a0ff'];
+function burstConfetti(){
+  const box=$('#confetti'), ball=document.querySelector('#kusu .kusu-ball');
+  if(!box || !ball) return;
+  box.innerHTML='';
+  const r = ball.getBoundingClientRect();
+  const cx = r.left + r.width/2, cy = r.top + r.height*.58;
+  for(let i=0;i<95;i++){
+    const el = document.createElement('i');
+    const ang = Math.random()*Math.PI - Math.PI/2;          /* 上向きの半円に飛ばす */
+    const spread = 50 + Math.random()*250;
+    el.style.left = cx+'px';
+    el.style.top  = cy+'px';
+    el.style.background = CONF_COL[(Math.random()*CONF_COL.length)|0];
+    el.style.setProperty('--dx',  (Math.sin(ang)*spread).toFixed(0)+'px');
+    el.style.setProperty('--up',  (-50 - Math.random()*150).toFixed(0)+'px');
+    el.style.setProperty('--rot', (((Math.random()*8-4)*180)|0)+'deg');
+    el.style.animationDuration = (2.3 + Math.random()*1.9).toFixed(2)+'s';
+    el.style.animationDelay    = (Math.random()*.32).toFixed(2)+'s';
+    if(i % 7 === 0){ el.className='st'; el.style.height=(30+Math.random()*44).toFixed(0)+'px'; }
+    box.appendChild(el);
+  }
+  clearTimeout(burstConfetti._t);
+  burstConfetti._t = setTimeout(()=>{ box.innerHTML=''; }, 5200);
+}
+function celebrate(){
+  const k=$('#kusu'); if(!k) return;
+  k.classList.add('reset');                /* 閉じ戻る動きを見せずに初期状態へ */
+  k.classList.remove('open','shake');
+  void k.offsetWidth;
+  k.classList.remove('reset');
+  void k.offsetWidth;
+  k.classList.add('shake');
+  playFanfare();
+  clearTimeout(celebrate._t);
+  celebrate._t = setTimeout(()=>{ k.classList.add('open'); burstConfetti(); }, 420);
+}
+
 /* 全グループのつまずいた語を数え上げる。クラスの弱点がそのまま次の授業の教材になる。 */
 function weakTop(){
   const cnt = {};
@@ -1496,7 +1616,7 @@ function doAward(){
     const s = list.filter(x=>x[key]!=null).sort((a,b)=>b[key]-a[key]).slice(0,5);
     if(!s.length) return '';
     const cls=['g','s','b','',''];
-    return s.map((x,i)=>`<div class="medal ${cls[i]}"><div class="rk">${i+1}</div>`
+    return s.map((x,i)=>`<div class="medal ${cls[i]}" style="animation-delay:${(1.05+i*.13).toFixed(2)}s"><div class="rk">${i+1}</div>`
       + `<div class="nm">${esc(x.name)}</div>`
       + `<div class="pt">${Number(x[key]).toLocaleString('en-US')}`
       + `<span class="sm mut"> ${unit}</span></div></div>`).join('');
@@ -1522,6 +1642,8 @@ function doAward(){
   }
   $('#awardBody').innerHTML = h;
   show('s-award');
+  paintSoundBtn();
+  celebrate();
 }
 
 /* =========================================================================
@@ -1956,7 +2078,8 @@ $('#goStudent').onclick = ()=>{ show('s-join'); setTimeout(()=>$('#joinCode').fo
 $('#goHelp').onclick    = ()=> show('s-help');
 $('#goMic').onclick     = ()=> show('s-mic');
 $$('[data-back]').forEach(b=>{ b.onclick = ()=>{
-  leavePlay();
+  leavePlay(); stopFanfare();
+  const cf=$('#confetti'); if(cf) cf.innerHTML='';
   if(b.dataset.back==='s-home') stopLive();
   show(b.dataset.back);
 }; });
@@ -1964,6 +2087,13 @@ $$('[data-back]').forEach(b=>{ b.onclick = ()=>{
 $('#makeCode').onclick = makeCode;
 $('#goTally').onclick  = ()=>{ initTally(); show('s-tally'); };
 $('#doAward').onclick  = doAward;
+$('#awardAgain').onclick = celebrate;
+$('#awardSound').onclick = ()=>{
+  fanfareOn = !fanfareOn;
+  store.set('vb:fanfare', fanfareOn ? 'on' : 'off');
+  if(!fanfareOn) stopFanfare();
+  paintSoundBtn();
+};
 $('#hostStart').onclick = ()=>{ if(T.phases.length && !T.timer) hostTick(); };
 $('#hostPause').onclick = ()=>{ if(T.timer){ clearInterval(T.timer); T.timer=0;
   T.left=Math.max(0,(T.endAt-Date.now())/1000); paintHost(); } };

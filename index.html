@@ -159,12 +159,14 @@ input[type=checkbox]{width:20px;height:20px;vertical-align:-4px;accent-color:var
   30% {transform:translate(calc(-50% + var(--dx) * .48), calc(-50% + var(--up))) rotate(calc(var(--rot) * .3))}
   100%{opacity:0; transform:translate(calc(-50% + var(--dx)), calc(-50% + 96vh)) rotate(var(--rot))}
 }
-.medal{animation:medalIn .5s cubic-bezier(.2,1.25,.4,1) both}
+.mwrap{animation:medalIn .5s cubic-bezier(.2,1.25,.4,1) both}
 @keyframes medalIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){
   .confetti{display:none}
   .kh,.kusu-banner{transition:none}
-  .medal{animation:none}
+  .mwrap{animation:none}
+  .medal{transition:none}
+  .medal.half{transform:none}
 }
 
 /* ---------- タイトルの表紙と、演出のカット ---------- */
@@ -252,14 +254,22 @@ input[type=checkbox]{width:20px;height:20px;vertical-align:-4px;accent-color:var
 .wrow .sp{border:1px solid var(--line);background:#0b1020;color:var(--acc);border-radius:10px;
   padding:6px 10px;font-size:15px;cursor:pointer;font-family:inherit}
 
-.medal{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
-  border-radius:14px;padding:12px 14px;margin:8px 0}
+.mwrap{margin:8px 0}
+.medal{cursor:pointer;outline:none;transform-origin:50% 50%;
+  transition:transform .2s ease-in}
+.medal.half{transform:scaleY(.04)}          /* 縦につぶれた瞬間に中身を入れ替える */
+.mface{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;
+  background:var(--card);border:1px solid var(--line)}
+.mface.back{display:none}
+.medal.turned .mface{display:none}
+.medal.turned .mface.back{display:flex}
+.medal.g .mface{border-color:#ffd166;background:rgba(255,209,102,.12)}
+.medal.s .mface{border-color:#c8d2e8;background:rgba(200,210,232,.10)}
+.medal.b .mface{border-color:#e08b52;background:rgba(224,139,82,.10)}
+.medal:focus-visible .mface{box-shadow:0 0 0 2px var(--acc)}
 .medal .rk{font-size:26px;font-weight:900;min-width:1.8em;text-align:center}
-.medal.g{border-color:#ffd166;background:rgba(255,209,102,.12)}
-.medal.s{border-color:#c8d2e8;background:rgba(200,210,232,.10)}
-.medal.b{border-color:#e08b52;background:rgba(224,139,82,.10)}
-.medal .nm{font-weight:800;font-size:18px;flex:1}
-.medal .pt{font-weight:900;font-size:22px}
+.medal .nm{font-weight:800;font-size:18px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.medal .pt{font-weight:900;font-size:22px;white-space:nowrap}
 
 /* ---------- 先生画面のライブ順位（レーン） ---------- */
 .lane{margin:8px 0;padding:8px 10px;background:#141a33;border:1px solid var(--line);
@@ -282,6 +292,12 @@ input[type=checkbox]{width:20px;height:20px;vertical-align:-4px;accent-color:var
   animation:runcycle2 .44s steps(2) infinite;
   transition:left .6s cubic-bezier(.2,.8,.2,1)}
 @keyframes runcycle2{from{background-position-x:0} to{background-position-x:-32px}}
+/* 終盤は順位を伏せて、表彰まで引っぱる */
+.hidebox{text-align:center;padding:26px 14px;border-radius:14px;
+  background:linear-gradient(180deg,#161d38,#121728);border:1px dashed var(--line)}
+.hidebox .hb{font-size:40px;font-weight:900;color:var(--acc2);line-height:1;
+  animation:hbeat 1.6s ease-in-out infinite}
+@keyframes hbeat{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.12);opacity:1}}
 .lane-goal{font-size:10px;font-weight:800;color:var(--ok);letter-spacing:.06em;
   border:1px solid rgba(61,220,151,.5);border-radius:6px;padding:1px 5px}
 .lane-goal:empty{display:none}
@@ -347,11 +363,14 @@ li{margin:.35em 0}
     <li>プロジェクタにコードを大きく映す。生徒は同じページを開いてコードを入力。</li>
     <li>全グループの準備ができたら、教師画面の<b>スタート</b>で合図。生徒も同時に画面をタップして開始。</li>
     <li>走っている間、教師画面に<b>順位</b>がリアルタイムで出ます（ライブ順位オンのとき）。</li>
-    <li>終わったら「結果を集計する」→「表彰する」。ライブ順位がオンなら記録は自動で入っています。</li>
+    <li>残り時間が<b>3分の1</b>を切ると、順位表は自動で伏せられます（「順位をかくす」で手動でも切り替えられます）。</li>
+    <li>終わったら<b>「表彰する」</b>を押すだけ。くす玉が割れて順位が発表されます。記録を直したいときだけ「記録を直す」へ。</li>
+    <li>表彰の<b>カードを押すと裏返って</b>、そのグループのメンバー名が出ます。</li>
   </ol>
   <h2>生徒</h2>
   <ol>
-    <li>コードを入力 → <b>グループ名</b>と人数を入れる → メンバー名（なくてもOK）。</li>
+    <li>コードを入力 → <b>グループ名</b>と人数を入れる → メンバー名（なくてもOK）。
+      メンバー名は<b>フルネームにしない</b>こと。名字か名前のどちらか、またはニックネームで。</li>
     <li>画面の<b>和訳</b>を見て、英単語を<b>声に出して</b>言う。1語言えるごとにランナーが<b>100m</b>進みます。</li>
     <li>空欄の <b>f····</b> は<b>ヒント</b>。最初の1文字と、残りの字数を表します。</li>
     <li>問題ごとに<b>たすきが次の人へ渡ります</b>。<b>まわりが教えるのはOK</b>。ただし最後に声を出すのは たすきを持っている人。</li>
@@ -476,7 +495,10 @@ li{margin:.35em 0}
       <div class="sm" id="liveState" style="flex:0 0 auto"></div>
     </div>
     <div id="liveBoard" style="margin-top:8px"></div>
-    <button class="btn ghost block sm" id="liveReset" style="margin-top:10px;padding:9px">参加をリセット</button>
+    <div class="row" style="margin-top:10px">
+      <button class="btn ghost sm" id="liveHide" style="padding:9px;font-size:13px">順位をかくす</button>
+      <button class="btn ghost sm" id="liveReset" style="padding:9px;font-size:13px">参加をリセット</button>
+    </div>
   </div>
 
   <div class="note">
@@ -484,11 +506,12 @@ li{margin:.35em 0}
     1. このページを開く　2.「生徒：コードで参加する」　3. コード <b id="hostCode2">------</b> を入力　4. グループ名と人数を入れる　5. 先生の合図で「スタート」
   </div>
 
-  <button class="btn warm block big" id="goTally">結果を集計する</button>
+  <button class="btn warm block big" id="goAward">表彰する</button>
   <div style="height:10px"></div>
   <div class="row">
-    <button class="btn ghost" data-back="s-setup">設定に戻る</button>
-    <button class="btn ghost" data-back="s-home">最初に戻る</button>
+    <button class="btn ghost" id="goTally" style="font-size:14px;padding:13px 6px">記録を直す</button>
+    <button class="btn ghost" data-back="s-setup" style="font-size:14px;padding:13px 6px">設定に戻る</button>
+    <button class="btn ghost" data-back="s-home" style="font-size:14px;padding:13px 6px">最初に戻る</button>
   </div>
 </section>
 
@@ -563,6 +586,9 @@ li{margin:.35em 0}
   </div>
   <div class="field" id="memberWrap">
     <label>メンバーの名前（なくてもOK）</label>
+    <div class="note" style="margin:0 0 10px;padding:10px 12px;font-size:13px">
+      <b>フルネームではなく、名字か名前のどちらかのみ、もしくはニックネームを入力してください。</b>
+    </div>
     <div class="row">
       <input type="text" id="mem0" maxlength="6" placeholder="1人目">
       <input type="text" id="mem1" maxlength="6" placeholder="2人目">
@@ -1244,7 +1270,7 @@ async function keepAwake(on){
    教師側
    ========================================================================= */
 const T = { cfg:null, phases:[], pi:0, endAt:0, timer:0, paused:false, left:0,
-             live:{}, rows:[], stop:null };
+             live:{}, rows:[], stop:null, hide:false };
 
 function initSetup(){
   const sel=$('#setPreset');
@@ -1337,9 +1363,16 @@ function setLiveState(k){
               ng:['つながりません','var(--ng)'], off:['ライブ順位オフ','var(--mut)'] }[k] || ['','' ];
   el.textContent = t[0]; el.style.color = t[1];
 }
+function setHideRank(v){
+  T.hide = !!v;
+  const b=$('#liveHide'); if(b) b.textContent = T.hide ? '順位を見せる' : '順位をかくす';
+  LB.el = {}; LB.val = {};
+  renderLive(T.live);
+}
 function startLive(){
   stopLive();
-  LB.el = {}; LB.val = {};
+  LB.el = {}; LB.val = {}; T.hide = false;
+  const hb=$('#liveHide'); if(hb) hb.textContent='順位をかくす';
   $('#liveBoard').innerHTML = '';
   if(!NET.on()){
     setLiveState('off');
@@ -1383,6 +1416,14 @@ function renderLive(teams){
   const box  = $('#liveBoard');
   $('#liveCount').textContent = rows.length;
   $('#liveDone').textContent  = rows.filter(r=>r.d).length;
+  if(T.hide){
+    /* 残り時間が3分の1を切ったら、ここから先は表彰まで見せない */
+    box.innerHTML = '<div class="hidebox"><div class="hb">?</div>'
+      + '<div style="margin-top:6px;font-weight:800">ここから先は ひみつ</div>'
+      + '<div class="sm mut">順位は「表彰する」で発表します</div></div>';
+    LB.el = {}; LB.val = {};
+    return;
+  }
   if(!rows.length){
     box.innerHTML = '<div class="sm mut center">まだ誰も参加していません</div>';
     LB.el = {}; LB.val = {}; return;
@@ -1451,6 +1492,7 @@ function buildPhases(){
 }
 function resetHostTimer(){
   clearInterval(T.timer); T.timer=0; T.paused=false;
+  setHideRank(false);
   T.left = T.phases[T.pi] ? T.phases[T.pi].sec : 0;
   paintHost();
 }
@@ -1467,6 +1509,8 @@ function hostTick(){
   T.timer = setInterval(()=>{
     T.left = Math.max(0, (T.endAt - Date.now())/1000);
     paintHost();
+    /* 残り3分の1で自動的に伏せる。ゴールの瞬間まで順位を見せない。 */
+    if(!T.hide && T.cfg && T.left <= T.cfg.roundSec/3) setHideRank(true);
     if(T.left<=0){
       clearInterval(T.timer); T.timer=0;
       if(T.pi < T.phases.length-1){ T.pi++; T.left = T.phases[T.pi].sec; paintHost(); hostTick(); }
@@ -1489,6 +1533,7 @@ function pullTally(){
     T.rows = rows.map(r=>({
       name: String(r.n||'').trim() || '（名前なし）',
       score: r.s||0, combo: (r.c==null ? null : r.c),
+      members: String(r.m||'').trim(),
       weak: String(r.w||''), done: !!r.d
     }));
     note.style.display='';
@@ -1610,18 +1655,29 @@ function doAward(){
     .filter(r => String(r.name||'').trim() || (r.score||0) > 0)
     .map(r => ({ name: String(r.name||'').trim() || '（名前なし）',
                  dist: (r.score||0)*M_HIT,
+                 members: String(r.members||''),
                  combo: (r.combo==null ? null : r.combo) }));
   if(!rows.length){ toast('まだ記録がありません'); return; }
   const rank = (list, key, unit) => {
     const s = list.filter(x=>x[key]!=null).sort((a,b)=>b[key]-a[key]).slice(0,5);
     if(!s.length) return '';
     const cls=['g','s','b','',''];
-    return s.map((x,i)=>`<div class="medal ${cls[i]}" style="animation-delay:${(1.05+i*.13).toFixed(2)}s"><div class="rk">${i+1}</div>`
-      + `<div class="nm">${esc(x.name)}</div>`
-      + `<div class="pt">${Number(x[key]).toLocaleString('en-US')}`
-      + `<span class="sm mut"> ${unit}</span></div></div>`).join('');
+    return s.map((x,i)=>{
+      const val = `${Number(x[key]).toLocaleString('en-US')}<span class="sm mut"> ${unit}</span>`;
+      const mem = String(x.members||'').trim();
+      const face = (nm, back) =>
+          `<div class="mface${back?' back':''}"><div class="rk">${i+1}</div>`
+        + `<div class="nm">${nm}</div><div class="pt">${val}</div></div>`;
+      return `<div class="mwrap" style="animation-delay:${(1.05+i*.13).toFixed(2)}s">`
+        + `<div class="medal ${cls[i]}" tabindex="0" title="タップでメンバー名">`
+        + face(esc(x.name), false)
+        + face(mem ? esc(mem) : '<span class="mut sm">名前の記録なし</span>', true)
+        + `</div></div>`;
+    }).join('');
   };
-  let h = `<h2>総合順位（走破距離）</h2>${rank(rows,'dist','m')}`;
+  let h = `<h2>総合順位（走破距離）</h2>`
+        + `<div class="sm mut" style="margin:-4px 0 8px">カードを押すと、メンバーの名前が出ます。</div>`
+        + rank(rows,'dist','m');
   const detailed = rows.filter(r=>r.combo!=null);
   if(detailed.length){
     h += `<h2>最長スパート賞（連続正解）</h2>${rank(detailed,'combo','連続')}`;
@@ -1641,6 +1697,19 @@ function doAward(){
     h += `<div class="note" style="margin-top:18px"><b>この後のひと工夫</b><br>各グループの端末の結果画面に「まだ言えないことば」が残っています。机間巡視で拾って、次の時間の復習に使ってください。</div>`;
   }
   $('#awardBody').innerHTML = h;
+  $('#awardBody').querySelectorAll('.medal').forEach(m=>{
+    m.onclick = ()=>{                                    /* 押すたびに表↔裏 */
+      if(m._busy) return;
+      m._busy = true;
+      m.classList.add('half');
+      setTimeout(()=>{
+        m.classList.toggle('turned');
+        m.classList.remove('half');
+        setTimeout(()=>{ m._busy = false; }, 210);
+      }, 200);
+    };
+    m.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); m.click(); } };
+  });
   show('s-award');
   paintSoundBtn();
   celebrate();
@@ -1769,16 +1838,27 @@ function goalOverlay(cb){
 const REPORT = {
   last:0,
   path(){ return 'rooms/'+G.code+'/teams/'+G.gid; },
+  noMem:false,
   body(done){
     const o = { n:String(G.gname||'').slice(0,10), s:G.score, c:G.maxCombo, at:Date.now(),
                 rs:G.roundScores.map(x=>x||0).join(',') };
+    const mem = G.names.filter(Boolean).join('・').slice(0,30);
+    if(mem && !this.noMem) o.m = mem;      /* 表彰でカードを裏返すと出る名前 */
     if(done){ o.d = 1; o.w = G.weak.slice(0,60).map(r=>r[0]).join(','); }
     return o;
   },
   send(done){
     if(!NET.on() || !G.code) return;
     this.last = Date.now();
-    NET.patch(this.path(), this.body(done)).catch(()=>{});
+    const body = this.body(done);
+    NET.patch(this.path(), body).catch(()=>{
+      /* データベースのルールが古いと m が弾かれて丸ごと失敗する。
+         その場合は名前を外して送り直し、順位だけは必ず届くようにする。 */
+      if(body.m !== undefined && !this.noMem){
+        this.noMem = true;
+        NET.patch(this.path(), this.body(done)).catch(()=>{});
+      }
+    });
   },
   tick(){                                  /* プレイ中は 2.5 秒に1回まで */
     if(!NET.on()) return;
@@ -2086,6 +2166,8 @@ $$('[data-back]').forEach(b=>{ b.onclick = ()=>{
 
 $('#makeCode').onclick = makeCode;
 $('#goTally').onclick  = ()=>{ initTally(); show('s-tally'); };
+$('#goAward').onclick  = ()=>{ pullTally(); doAward(); };
+$('#liveHide').onclick = ()=> setHideRank(!T.hide);
 $('#doAward').onclick  = doAward;
 $('#awardAgain').onclick = celebrate;
 $('#awardSound').onclick = ()=>{

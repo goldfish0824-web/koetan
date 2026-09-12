@@ -369,7 +369,7 @@ li{margin:.35em 0}
   </ol>
   <h2>生徒</h2>
   <ol>
-    <li>コードを入力 → <b>グループ名</b>と人数を入れる → メンバー名（なくてもOK）。
+    <li>コードを入力 → <b>グループ名</b>と人数 → <b>メンバー名を人数ぶん全員</b>。
       メンバー名は<b>フルネームにしない</b>こと。名字か名前のどちらか、またはニックネームで。</li>
     <li>画面の<b>和訳</b>を見て、英単語を<b>声に出して</b>言う。1語言えるごとにランナーが<b>100m</b>進みます。</li>
     <li>空欄の <b>f····</b> は<b>ヒント</b>。最初の1文字と、残りの字数を表します。</li>
@@ -485,7 +485,11 @@ li{margin:.35em 0}
       <button class="btn" id="hostPause" style="font-size:15px;padding:13px 8px">一時停止</button>
       <button class="btn ghost" id="hostReset" style="font-size:15px;padding:13px 8px">リセット</button>
     </div>
-    <div class="xs mut" style="margin-top:10px">これは<b>合図用のタイマー</b>です。「よーい、スタート！」の声で、各グループにも同時に画面をタップさせてください。</div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn ghost sm" id="hostBgm" style="padding:9px;font-size:13px">🎵 BGM</button>
+      <button class="btn ghost sm" id="hostBgmVol" style="padding:9px;font-size:13px">🔊 音量</button>
+    </div>
+    <div class="xs mut" style="margin-top:10px">これは<b>合図用のタイマー</b>です。「よーい、スタート！」の声で、各グループにも同時に画面をタップさせてください。<br>BGMはこの端末（先生の画面）だけから鳴ります。スタートと同時に流れ、時間切れで自動的に消えます。タイマーが止まっているときにボタンを押すと<b>5秒だけ試し聞き</b>できるので、授業前にスピーカーの音量を合わせてください。</div>
   </div>
 
   <div class="card" id="liveWrap">
@@ -585,7 +589,7 @@ li{margin:.35em 0}
     </div>
   </div>
   <div class="field" id="memberWrap">
-    <label>メンバーの名前（なくてもOK）</label>
+    <label>メンバーの名前（人数ぶん全員）</label>
     <div class="note" style="margin:0 0 10px;padding:10px 12px;font-size:13px">
       <b>フルネームではなく、名字か名前のどちらかのみ、もしくはニックネームを入力してください。</b>
     </div>
@@ -1352,6 +1356,7 @@ function openHost(code){
   catch(_){ $('#hostUrl').textContent = location.origin+location.pathname; }
   $('#hostSummary').textContent = summaryOf(T.cfg);
   buildPhases(); resetHostTimer();
+  bgmProbe();                 /* 授業が始まる前に、使う曲を読み込んでおく */
   show('s-host');
   startLive();
 }
@@ -1492,6 +1497,7 @@ function buildPhases(){
 }
 function resetHostTimer(){
   clearInterval(T.timer); T.timer=0; T.paused=false;
+  bgmStop(0);
   setHideRank(false);
   T.left = T.phases[T.pi] ? T.phases[T.pi].sec : 0;
   paintHost();
@@ -1514,7 +1520,7 @@ function hostTick(){
     if(T.left<=0){
       clearInterval(T.timer); T.timer=0;
       if(T.pi < T.phases.length-1){ T.pi++; T.left = T.phases[T.pi].sec; paintHost(); hostTick(); }
-      else { $('#hostPhase').textContent='終了 — 結果を集計しましょう'; }
+      else { $('#hostPhase').textContent='終了 — 結果を集計しましょう'; bgmStop(1800); }
     }
   }, 200);
 }
@@ -1582,6 +1588,115 @@ function decodeResult(code){
   if(score > 999) return null;
   return { score, combo };
 }
+/* ---------- プレー中のBGM ----------
+   鳴らすのは先生の端末だけ。生徒の端末はマイクを開いているので、
+   同じ端末から音楽を流すと音声認識がそれを拾って誤作動する。
+   mp3 は index.html に埋め込まず、bgm/ から必要になったときだけ読む。
+   だから曲を何曲入れても、生徒側の読み込みは1バイトも増えない。
+   ファイルが無い番号は自動で飛ばす（無音のまま進む）。 */
+const BGM_SRC  = ['bgm/play1.mp3','bgm/play2.mp3','bgm/play3.mp3','bgm/play4.mp3'];
+const BGM_VOL  = [0.15, 0.32, 0.60];
+const BGM_VLAB = ['小','中','大'];
+const bgmEl  = [];        /* 生成済み Audio（必要になったものだけ） */
+const bgmBad = {};        /* 読めなかった番号 */
+let bgmTrack = (function(){ const v = store.get('vb:bgm');  return v==null ? 0 : (v|0); })();  /* -1 = なし */
+let bgmVol   = (function(){ const v = store.get('vb:bgmv'); return v==null ? 1 : (v|0); })();
+if(!(bgmVol >= 0 && bgmVol < BGM_VOL.length)) bgmVol = 1;
+if(!(bgmTrack >= -1 && bgmTrack < BGM_SRC.length)) bgmTrack = 0;
+
+function bgmAudio(i, full){
+  if(!(i >= 0) || i >= BGM_SRC.length || bgmBad[i]) return null;
+  let a = bgmEl[i];
+  if(!a){
+    try{ a = new Audio(); }catch(_){ bgmBad[i] = true; return null; }
+    a.loop = true; a.volume = 0;
+    a.preload = full ? 'auto' : 'metadata';
+    a.addEventListener('error', ()=>{ bgmBad[i] = true; bgmSettle(); });
+    a.src = BGM_SRC[i];
+    bgmEl[i] = a;
+  } else if(full && a.preload !== 'auto'){
+    a.preload = 'auto'; try{ a.load(); }catch(_){}
+  }
+  return a;
+}
+function bgmFadeTo(a, to, ms, done){
+  if(!a) return;
+  clearInterval(a._fd); a._fd = 0;
+  const from = a.volume, t0 = Date.now();
+  if(!(ms > 0)){ try{ a.volume = to; }catch(_){} if(done) done(); return; }
+  a._fd = setInterval(()=>{
+    const k = Math.min(1, (Date.now()-t0)/ms);
+    try{ a.volume = Math.max(0, Math.min(1, from + (to-from)*k)); }catch(_){}
+    if(k >= 1){ clearInterval(a._fd); a._fd = 0; if(done) done(); }
+  }, 50);
+}
+function bgmPlay(){
+  clearTimeout(bgmPreview._t);
+  const a = bgmAudio(bgmTrack, true); if(!a) return;
+  try{
+    const p = a.play();
+    if(p && p.catch) p.catch(()=>{});      /* 自動再生が止められても黙って続ける */
+    bgmFadeTo(a, BGM_VOL[bgmVol], 800);    /* すっと立ち上がる */
+  }catch(_){}
+}
+function bgmPreview(){          /* 授業が始まる前に、スピーカーの音量を合わせるための試し聞き */
+  if(T.timer) return;           /* 本番が動いているときは邪魔しない */
+  if(bgmTrack < 0){ bgmStop(0); return; }
+  const a = bgmAudio(bgmTrack, true); if(!a) return;
+  try{ a.currentTime = 0; const p = a.play(); if(p && p.catch) p.catch(()=>{}); }catch(_){}
+  bgmFadeTo(a, BGM_VOL[bgmVol], 250);
+  clearTimeout(bgmPreview._t);
+  bgmPreview._t = setTimeout(()=>{ if(!T.timer) bgmStop(600); }, 5000);
+}
+function bgmPause(){
+  const a = bgmEl[bgmTrack]; if(!a) return;
+  bgmFadeTo(a, 0, 300, ()=>{ try{ a.pause(); }catch(_){} });
+}
+function bgmStop(fade){
+  bgmEl.forEach(a=>{
+    if(!a) return;
+    if(fade > 0) bgmFadeTo(a, 0, fade, ()=>{ try{ a.pause(); a.currentTime = 0; }catch(_){} });
+    else { clearInterval(a._fd); a._fd = 0; try{ a.pause(); a.currentTime = 0; a.volume = 0; }catch(_){} }
+  });
+}
+function bgmAlive(){ return BGM_SRC.some((_,i)=> !bgmBad[i]); }
+function bgmNext(){
+  let t = bgmTrack;
+  for(let k = 0; k <= BGM_SRC.length; k++){
+    t = (t+1 >= BGM_SRC.length) ? -1 : t+1;
+    if(t < 0 || !bgmBad[t]) break;         /* 入っていない番号は飛ばす */
+  }
+  bgmTrack = t;
+}
+function bgmSettle(){
+  if(bgmTrack >= 0 && bgmBad[bgmTrack]){   /* 選んでいた曲が無かったら、ある曲に寄せる */
+    const ok = BGM_SRC.map((_,i)=>i).filter(i=> !bgmBad[i]);
+    bgmTrack = ok.length ? ok[0] : -1;
+    if(bgmTrack >= 0) bgmAudio(bgmTrack, true);
+  }
+  paintBgmBtn();
+}
+function bgmProbe(){
+  BGM_SRC.forEach((_,i)=> bgmAudio(i, i === bgmTrack));  /* 使う曲だけ本読み、他は在り無しの確認だけ */
+  paintBgmBtn();
+  clearTimeout(bgmProbe._t);
+  bgmProbe._t = setTimeout(bgmSettle, 1500);
+}
+function paintBgmBtn(){
+  const b = $('#hostBgm'), v = $('#hostBgmVol');
+  const none = !bgmAlive();
+  if(b){
+    b.textContent = none        ? '🎵 BGMのファイルがありません'
+                  : bgmTrack<0  ? '🔈 BGM：なし'
+                                : '🎵 BGM：' + (bgmTrack+1) + '曲め';
+    b.disabled = none;
+  }
+  if(v){
+    v.textContent = '🔊 音量：' + BGM_VLAB[bgmVol];
+    v.disabled = none || bgmTrack < 0;
+  }
+}
+
 /* ---------- 表彰の演出 ----------
    くす玉が割れて紙吹雪が舞い、ファンファーレが鳴る。
    音は先生の画面でしか鳴らさないので、生徒の端末は mp3 を読みに行かない。
@@ -1710,6 +1825,7 @@ function doAward(){
     };
     m.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); m.click(); } };
   });
+  bgmStop(400);          /* ファンファーレと重ならないようにBGMを引く */
   show('s-award');
   paintSoundBtn();
   celebrate();
@@ -1889,7 +2005,6 @@ function initTeam(){
 }
 function syncMembers(){
   const n=segVal('#teamSize');
-  $('#memberWrap').classList.toggle('hide', n<2);
   $('#mem1').classList.toggle('hide', n<2);
   $('#mem2').classList.toggle('hide', n<3);
 }
@@ -2158,7 +2273,7 @@ $('#goStudent').onclick = ()=>{ show('s-join'); setTimeout(()=>$('#joinCode').fo
 $('#goHelp').onclick    = ()=> show('s-help');
 $('#goMic').onclick     = ()=> show('s-mic');
 $$('[data-back]').forEach(b=>{ b.onclick = ()=>{
-  leavePlay(); stopFanfare();
+  leavePlay(); stopFanfare(); bgmStop(0);
   const cf=$('#confetti'); if(cf) cf.innerHTML='';
   if(b.dataset.back==='s-home') stopLive();
   show(b.dataset.back);
@@ -2176,9 +2291,23 @@ $('#awardSound').onclick = ()=>{
   if(!fanfareOn) stopFanfare();
   paintSoundBtn();
 };
-$('#hostStart').onclick = ()=>{ if(T.phases.length && !T.timer) hostTick(); };
+$('#hostStart').onclick = ()=>{ if(T.phases.length && !T.timer){ hostTick(); if(T.left>0) bgmPlay(); } };
 $('#hostPause').onclick = ()=>{ if(T.timer){ clearInterval(T.timer); T.timer=0;
-  T.left=Math.max(0,(T.endAt-Date.now())/1000); paintHost(); } };
+  T.left=Math.max(0,(T.endAt-Date.now())/1000); paintHost(); bgmPause(); } };
+$('#hostBgm').onclick = ()=>{
+  bgmNext(); store.set('vb:bgm', String(bgmTrack)); paintBgmBtn();
+  if(bgmTrack < 0) bgmStop(250);
+  else { bgmStop(0); bgmAudio(bgmTrack, true);
+         if(T.timer) bgmPlay();                /* 進行中ならその場で差し替える */
+         else bgmPreview(); }                  /* 止まっているときは少しだけ鳴らして聴かせる */
+};
+$('#hostBgmVol').onclick = ()=>{
+  bgmVol = (bgmVol+1) % BGM_VOL.length;
+  store.set('vb:bgmv', String(bgmVol)); paintBgmBtn();
+  const a = bgmEl[bgmTrack];
+  if(a && !a.paused) bgmFadeTo(a, BGM_VOL[bgmVol], 200);
+  else bgmPreview();
+};
 $('#hostReset').onclick = ()=>{ T.pi=0; resetHostTimer(); };
 $('#liveReset').onclick = ()=>{
   if(!NET.on() || !T.cfg) return;
@@ -2214,10 +2343,14 @@ $('#teamGo').onclick = ()=>{
   if(!G.cfg){ toast('先にコードを入力してください'); show('s-join'); return; }
   const nm = $('#teamName').value.trim().slice(0,10);
   if(!nm){ toast('グループ名を入れてください'); $('#teamName').focus(); return; }
+  const size = segVal('#teamSize');
+  const boxes = [$('#mem0'), $('#mem1'), $('#mem2')].slice(0, size);
+  const empty = boxes.find(el => !el.value.trim());     /* 人数ぶん全員の名前が要る */
+  if(empty){ toast('メンバーの名前を全員ぶん入れてください'); empty.focus(); return; }
   G.gname = nm;
   G.gid   = deviceId();
-  G.size = segVal('#teamSize');
-  G.names = [$('#mem0').value, $('#mem1').value, $('#mem2').value].slice(0, G.size);
+  G.size  = size;
+  G.names = boxes.map(el => el.value.trim().slice(0,6));
   store.set('vb:team', JSON.stringify({name:G.gname, size:G.size, names:G.names}));
   G.score=0; G.roundScores=[]; G.combo=0; G.maxCombo=0; G.seen=0;
   G.weak=[]; G.carry=[]; G.missed=[];

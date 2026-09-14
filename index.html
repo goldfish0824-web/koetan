@@ -489,7 +489,7 @@ li{margin:.35em 0}
       <button class="btn ghost sm" id="hostBgm" style="padding:9px;font-size:13px">🎵 BGM</button>
       <button class="btn ghost sm" id="hostBgmVol" style="padding:9px;font-size:13px">🔊 音量</button>
     </div>
-    <div class="xs mut" style="margin-top:10px">これは<b>合図用のタイマー</b>です。「よーい、スタート！」の声で、各グループにも同時に画面をタップさせてください。<br>BGMはこの端末（先生の画面）だけから鳴ります。スタートと同時に流れ、時間切れで自動的に消えます。タイマーが止まっているときにボタンを押すと<b>5秒だけ試し聞き</b>できるので、授業前にスピーカーの音量を合わせてください。</div>
+    <div class="xs mut" style="margin-top:10px">これは<b>合図用のタイマー</b>です。「よーい、スタート！」の声で、各グループにも同時に画面をタップさせてください。<br>BGMはこの端末（先生の画面）だけから鳴ります。スタートと同時に流れ、時間切れで自動的に消えます。曲は入っているものから<b>自動で選ばれます</b>（続けて同じ曲になりにくくしてあります）。タイマーが止まっているときにボタンを押すと<b>5秒だけ試し聞き</b>できるので、授業前にスピーカーの音量を合わせてください。</div>
   </div>
 
   <div class="card" id="liveWrap">
@@ -1455,7 +1455,16 @@ function makeCode(){
     btn.disabled=false; btn.textContent='コードを作る';
     if(!NET.on()){ openHost(code); return; }
     let opened=false;
-    const once = ()=>{ if(!opened){ opened=true; openHost(code); } };
+    const once = ()=>{
+      if(opened) return;
+      opened = true;
+      rememberCode(code);
+      openHost(code);
+      /* ついでに、古くなった部屋をまとめて片づける */
+      const cand = [];
+      for(let sd = 0; sd < 16; sd++) cand.push(encodeGame({...cfg, seed:sd}));
+      sweepList(cand.concat(codeMemory()), code);
+    };
     setTimeout(once, 1200);
     NET.del('rooms/'+code+'/teams').then(once).catch(once);
   };
@@ -1519,21 +1528,34 @@ function roomLastAt(room){                     /* その部屋が最後に使わ
   if(tm) for(const k in tm){ const a = +((tm[k]||{}).at) || 0; if(a > t) t = a; }
   return t;
 }
-function sweepRooms(){
-  if(!NET.on() || sweepRooms._done) return;    /* 1回ひらくあいだに1度でよい */
-  sweepRooms._done = true;
-  NET.get('rooms').then(all=>{
-    if(!all || typeof all !== 'object') return;
-    const now = Date.now(), mine = T.cfg && T.cfg.code;
-    let n = 0;
-    Object.keys(all).forEach(code=>{
-      if(code === mine) return;                          /* いま使っている部屋は触らない */
-      const last = roomLastAt(all[code]);
-      if(last && now - last < ROOM_TTL) return;          /* まだ新しい部屋は残す */
-      n++; NET.del('rooms/'+code).catch(()=>{});
-    });
-    if(n) try{ console.info('[こえたん] 古い部屋を '+n+' 件かたづけました'); }catch(_){}
-  }).catch(()=>{});
+/* セキュリティルールが読み書きを許しているのは rooms/<コード> の単位だけで、
+   「どんな部屋があるか」を一覧で聞くことはできない（rooms 全体は読めない）。
+   そこで、片づける心当たりのコードを自分で並べて、1部屋ずつ確かめて消す。
+     ・いまの設定で出うる16通りのコード（＝次に同じコードが返ってくる候補）
+     ・この端末がこれまでに作った部屋（覚えてある） */
+function codeMemory(){
+  try{ const a = JSON.parse(store.get('vb:rooms') || '[]'); return Array.isArray(a) ? a : []; }
+  catch(_){ return []; }
+}
+function rememberCode(code){
+  const a = codeMemory().filter(c => c !== code);
+  a.push(code);
+  store.set('vb:rooms', JSON.stringify(a.slice(-40)));
+}
+function sweepList(codes, keep){
+  if(!NET.on()) return;
+  const now = Date.now(), seen = {};
+  codes.forEach(code=>{
+    if(!code || code === keep || seen[code]) return;     /* いま使う部屋は触らない */
+    seen[code] = 1;
+    NET.get('rooms/'+code).then(room=>{
+      if(!room) return;                                  /* もう無い */
+      const last = roomLastAt(room);
+      if(last && now - last < ROOM_TTL) return;          /* 誰かが使っている最中 */
+      NET.del('rooms/'+code).catch(()=>{});
+      try{ console.info('[こえたん] 古い部屋 '+code+' をかたづけました'); }catch(_){}
+    }).catch(()=>{});
+  });
 }
 
 function startLive(){
@@ -1560,7 +1582,6 @@ function startLive(){
   clearInterval(T.beat);
   T.beat = setInterval(()=>{ if(NET.on() && T.cfg) beat().catch(()=>{}); }, 120000);
   T.stop = NET.stream('rooms/'+T.cfg.code+'/teams', renderLive, setLiveState);
-  sweepRooms();
 }
 function stopLive(){ clearInterval(T.beat); T.beat=0;
   if(T.stop){ try{ T.stop(); }catch(_){} T.stop=null; } }
@@ -1667,7 +1688,7 @@ function buildPhases(){
 }
 function resetHostTimer(){
   clearInterval(T.timer); T.timer=0; T.paused=false;
-  bgmStop(0);
+  bgmStop(0); bgmArm();        /* やり直すときは、曲もえらび直す */
   setHideRank(false);
   T.left = T.phases[T.pi] ? T.phases[T.pi].sec : 0;
   paintHost();
@@ -1769,10 +1790,11 @@ const BGM_VOL  = [0.15, 0.32, 0.60];
 const BGM_VLAB = ['小','中','大'];
 const bgmEl  = [];        /* 生成済み Audio（必要になったものだけ） */
 const bgmBad = {};        /* 読めなかった番号 */
-let bgmTrack = (function(){ const v = store.get('vb:bgm');  return v==null ? 0 : (v|0); })();  /* -1 = なし */
-let bgmVol   = (function(){ const v = store.get('vb:bgmv'); return v==null ? 1 : (v|0); })();
+let bgmOn   = (store.get('vb:bgm') !== 'off');   /* 鳴らすか鳴らさないか。曲は選ばない */
+let bgmCur  = -1;                               /* 今回鳴らす曲。開くたびに抽選する */
+let bgmLast = -1;                               /* 前回の曲。続けて同じにならないように覚えておく */
+let bgmVol  = (function(){ const v = store.get('vb:bgmv'); return v==null ? 1 : (v|0); })();
 if(!(bgmVol >= 0 && bgmVol < BGM_VOL.length)) bgmVol = 1;
-if(!(bgmTrack >= -1 && bgmTrack < BGM_SRC.length)) bgmTrack = 0;
 
 function bgmAudio(i, full){
   if(!(i >= 0) || i >= BGM_SRC.length || bgmBad[i]) return null;
@@ -1800,26 +1822,48 @@ function bgmFadeTo(a, to, ms, done){
     if(k >= 1){ clearInterval(a._fd); a._fd = 0; if(done) done(); }
   }, 50);
 }
+/* 入っている曲から1曲えらぶ。2曲以上あるときは、前回と同じ曲を避ける。 */
+function bgmPick(){
+  const ok = BGM_SRC.map((_,i)=>i).filter(i=> !bgmBad[i]);
+  if(!ok.length) return -1;
+  let pool = ok.length > 1 ? ok.filter(i=> i !== bgmLast) : ok;
+  if(!pool.length) pool = ok;
+  const i = pool[(Math.random()*pool.length)|0];
+  bgmLast = i;
+  return i;
+}
+/* 今回の曲を決めて、先に読み込んでおく。
+   スタートを押した瞬間に間が空かないよう、抽選は「部屋を開いたとき」と
+   「リセットしたとき」に済ませておく。 */
+function bgmArm(){
+  if(!bgmOn){ bgmCur = -1; return; }
+  bgmCur = bgmPick();
+  if(bgmCur >= 0) bgmAudio(bgmCur, true);
+}
 function bgmPlay(){
   clearTimeout(bgmPreview._t);
-  const a = bgmAudio(bgmTrack, true); if(!a) return;
+  if(!bgmOn) return;
+  if(bgmCur < 0) bgmArm();                 /* まだ決まっていなければ、ここで決める */
+  const a = bgmAudio(bgmCur, true); if(!a) return;
   try{
-    const p = a.play();
+    const p = a.play();                    /* 一時停止からなら、そのまま続きが鳴る */
     if(p && p.catch) p.catch(()=>{});      /* 自動再生が止められても黙って続ける */
     bgmFadeTo(a, BGM_VOL[bgmVol], 800);    /* すっと立ち上がる */
   }catch(_){}
 }
 function bgmPreview(){          /* 授業が始まる前に、スピーカーの音量を合わせるための試し聞き */
   if(T.timer) return;           /* 本番が動いているときは邪魔しない */
-  if(bgmTrack < 0){ bgmStop(0); return; }
-  const a = bgmAudio(bgmTrack, true); if(!a) return;
+  if(!bgmOn){ bgmStop(0); return; }
+  bgmStop(0);
+  bgmCur = bgmPick();           /* 押すたびに、入っている曲から1曲 */
+  const a = bgmAudio(bgmCur, true); if(!a) return;
   try{ a.currentTime = 0; const p = a.play(); if(p && p.catch) p.catch(()=>{}); }catch(_){}
   bgmFadeTo(a, BGM_VOL[bgmVol], 250);
   clearTimeout(bgmPreview._t);
   bgmPreview._t = setTimeout(()=>{ if(!T.timer) bgmStop(600); }, 5000);
 }
 function bgmPause(){
-  const a = bgmEl[bgmTrack]; if(!a) return;
+  const a = bgmEl[bgmCur]; if(!a) return;
   bgmFadeTo(a, 0, 300, ()=>{ try{ a.pause(); }catch(_){} });
 }
 function bgmStop(fade){
@@ -1830,40 +1874,31 @@ function bgmStop(fade){
   });
 }
 function bgmAlive(){ return BGM_SRC.some((_,i)=> !bgmBad[i]); }
-function bgmNext(){
-  let t = bgmTrack;
-  for(let k = 0; k <= BGM_SRC.length; k++){
-    t = (t+1 >= BGM_SRC.length) ? -1 : t+1;
-    if(t < 0 || !bgmBad[t]) break;         /* 入っていない番号は飛ばす */
-  }
-  bgmTrack = t;
-}
 function bgmSettle(){
-  if(bgmTrack >= 0 && bgmBad[bgmTrack]){   /* 選んでいた曲が無かったら、ある曲に寄せる */
-    const ok = BGM_SRC.map((_,i)=>i).filter(i=> !bgmBad[i]);
-    bgmTrack = ok.length ? ok[0] : -1;
-    if(bgmTrack >= 0) bgmAudio(bgmTrack, true);
-  }
+  if(bgmCur >= 0 && bgmBad[bgmCur]) bgmCur = -1;   /* えらんだ曲が無かった */
+  if(bgmCur < 0) bgmArm();
   paintBgmBtn();
 }
 function bgmProbe(){
-  BGM_SRC.forEach((_,i)=> bgmAudio(i, i === bgmTrack));  /* 使う曲だけ本読み、他は在り無しの確認だけ */
+  BGM_SRC.forEach((_,i)=> bgmAudio(i, false));  /* まず、どの番号が入っているかだけ確かめる */
   paintBgmBtn();
   clearTimeout(bgmProbe._t);
-  bgmProbe._t = setTimeout(bgmSettle, 1500);
+  bgmProbe._t = setTimeout(bgmSettle, 1500);    /* 出そろってから抽選して、その曲を読み込む */
 }
 function paintBgmBtn(){
   const b = $('#hostBgm'), v = $('#hostBgmVol');
-  const none = !bgmAlive();
+  const ok = BGM_SRC.map((_,i)=>i).filter(i=> !bgmBad[i]);
+  const none = !ok.length;
   if(b){
-    b.textContent = none        ? '🎵 BGMのファイルがありません'
-                  : bgmTrack<0  ? '🔈 BGM：なし'
-                                : '🎵 BGM：' + (bgmTrack+1) + '曲め';
+    b.textContent = none     ? '🎵 BGMのファイルがありません'
+                  : !bgmOn   ? '🔈 BGM：なし'
+                  : ok.length > 1 ? '🎵 BGM：ランダム'
+                                  : '🎵 BGM：あり';
     b.disabled = none;
   }
   if(v){
     v.textContent = '🔊 音量：' + BGM_VLAB[bgmVol];
-    v.disabled = none || bgmTrack < 0;
+    v.disabled = none || !bgmOn;
   }
 }
 
@@ -2465,16 +2500,17 @@ $('#hostStart').onclick = ()=>{ if(T.phases.length && !T.timer){ hostTick(); if(
 $('#hostPause').onclick = ()=>{ if(T.timer){ clearInterval(T.timer); T.timer=0;
   T.left=Math.max(0,(T.endAt-Date.now())/1000); paintHost(); bgmPause(); } };
 $('#hostBgm').onclick = ()=>{
-  bgmNext(); store.set('vb:bgm', String(bgmTrack)); paintBgmBtn();
-  if(bgmTrack < 0) bgmStop(250);
-  else { bgmStop(0); bgmAudio(bgmTrack, true);
-         if(T.timer) bgmPlay();                /* 進行中ならその場で差し替える */
-         else bgmPreview(); }                  /* 止まっているときは少しだけ鳴らして聴かせる */
+  bgmOn = !bgmOn;                              /* 鳴らす／鳴らさない だけの切り替え */
+  store.set('vb:bgm', bgmOn ? 'on' : 'off');
+  paintBgmBtn();
+  if(!bgmOn){ bgmStop(250); bgmCur = -1; return; }
+  if(T.timer){ bgmStop(0); bgmArm(); bgmPlay(); }   /* 進行中なら、その場で1曲えらんで鳴らす */
+  else bgmPreview();                                /* 止まっているときは少しだけ聴かせる */
 };
 $('#hostBgmVol').onclick = ()=>{
   bgmVol = (bgmVol+1) % BGM_VOL.length;
   store.set('vb:bgmv', String(bgmVol)); paintBgmBtn();
-  const a = bgmEl[bgmTrack];
+  const a = bgmEl[bgmCur];
   if(a && !a.paused) bgmFadeTo(a, BGM_VOL[bgmVol], 200);
   else bgmPreview();
 };

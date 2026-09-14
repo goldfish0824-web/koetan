@@ -656,6 +656,9 @@ li{margin:.35em 0}
     <div class="hv" id="pHeard">&mdash;</div>
     <div class="wave" id="pWave"><i></i><i></i><i></i><i></i><i></i></div></div>
 
+  <button class="btn warm block hide" id="pMicFix"
+    style="margin:-6px 0 10px;padding:12px;font-size:14px">🎤 マイクが止まりました　タップで再開</button>
+
   <div class="hide" id="pTypeWrap" style="margin:10px 0">
     <input type="text" id="pType" autocomplete="off" autocapitalize="off" spellcheck="false"
       placeholder="英語を入力して Enter">
@@ -1134,6 +1137,13 @@ const SRC = window.SpeechRecognition || window.webkitSpeechRecognition;
 const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Mac/.test(navigator.platform) && navigator.maxTouchPoints>1);
 let rec=null, recWant=false, micPrimed=false, onHeard=null, waveEl=null;
 
+/* 認識エンジンが「止まったのに止まったと分からない」状態になるのを防ぐ。
+   recWant（動かしたい）と recLive（実際に動いている）は別物で、
+   前は recWant だけを見ていたので、start() が失敗すると二度と復帰できなかった。
+   recSeq は認識オブジェクトの世代。作り直したあと、古いオブジェクトの
+   イベントが遅れて届いても無視するために使う。 */
+let recLive=false, recSeq=0, recStartAt=0, recEventAt=0, recNetErr=0, recFail=0, recGuard=0, recDead=0;
+
 /* continuous 認識は 1 回の起動中の結果を e.results にためこみ続ける。
    しかも Chrome は発話が終わってから 0.5〜2 秒遅れて「確定結果」を返すので、
    何もしないと〈さっき得点した発話の確定版〉が次の問題に届いて、
@@ -1151,12 +1161,75 @@ function dropSpoken(){
 function resetSpoken(){ recResults=null; recSkip=0; recUsed={}; }
 
 function waveOn(on){ if(waveEl) waveEl.classList.toggle('live', !!on); }
+function micFix(show){ const b=$('#pMicFix'); if(b) b.classList.toggle('hide', !show); }
+
+/* 認識オブジェクトを完全に捨てる。ハンドラを外してから abort するので、
+   このあと古いオブジェクトから届くイベントは何も触らない。 */
+function killRec(){
+  const old = rec;
+  rec = null; recLive = false; recSeq++;
+  if(!old) return;
+  try{ old.onstart=old.onresult=old.onerror=old.onend=old.onaudiostart=old.onspeechstart=null; }catch(_){}
+  try{ old.abort(); }catch(_){}
+  try{ old.stop();  }catch(_){}
+}
+/* 作り直して開き直す。止まったときの最終手段。 */
+function recycleRec(){
+  if(!recWant) return;
+  killRec();
+  rec = buildRec();
+  if(!rec){ recWant=false; return; }
+  recStartAt = Date.now();
+  try{ rec.start(); }
+  catch(_){ setTimeout(()=>{ if(recWant && !recLive){ try{ rec && rec.start(); }catch(_){} } }, 450); }
+}
+/* 見張り役。0.6秒ごとに「動いているはずなのに動いていない」を見つけて直す。
+   お手本の読み上げ中は recWant=false なので、ここでは何もしない（誤検知しない）。 */
+function recWatch(on){
+  clearInterval(recGuard); recGuard = 0;
+  if(!on){ recDead = 0; return; }
+  recGuard = setInterval(()=>{
+    if(!recWant){ recDead = 0; return; }
+    const now = Date.now();
+    if(recLive){
+      recDead = 0;
+      const quiet = now - recEventAt;
+      /* 教室では、誰かの物音で onsoundstart がしょっちゅう届く。
+         20秒ものあいだ物音ひとつ届かないなら、エンジンだけ死んでいて
+         こちらが気づいていない状態（端末のスリープ復帰などで起きる）。
+         止まったと言ってこないので、時間で見抜いて作り直す。 */
+      if(quiet > 20000){ recycleRec(); return; }
+      /* 長く回しっぱなしにすると Chrome 系は静かに劣化する。
+         誰も話していない隙に、自分から入れ替えておく。 */
+      if(now - recStartAt > 50000 && quiet > 1500){
+        try{ rec.stop(); }catch(_){ recycleRec(); }   /* onend がきて開き直る */
+      }
+      return;
+    }
+    if(!recDead) recDead = now;
+    const wait = recFail < 5 ? 1800 : 5000;     /* 直らないときは、だんだん間隔をあける */
+    if(now - recStartAt > wait){ recFail++; recycleRec(); }
+    if(now - recDead > 2500) micFix(true);      /* 2.5秒だまったら、生徒に押してもらう */
+  }, 600);
+}
 function buildRec(){
   if(!SRC) return null;
   const r = new SRC();
+  const gen = ++recSeq;
   r.lang='en-US'; r.continuous=true; r.interimResults=true; r.maxAlternatives=10;
-  r.onstart = ()=>{ waveOn(true); resetSpoken(); };
+  const mine = ()=> gen === recSeq;
+  r.onstart = ()=>{
+    if(!mine()) return;
+    recLive=true; recEventAt=Date.now(); recNetErr=0; recFail=0; recDead=0;
+    micFix(false); waveOn(true); resetSpoken();
+  };
+  r.onaudiostart  = ()=>{ if(mine()) recEventAt=Date.now(); };
+  r.onspeechstart = ()=>{ if(mine()) recEventAt=Date.now(); };
+  r.onsoundstart  = ()=>{ if(mine()) recEventAt=Date.now(); };
+  r.onsoundend    = ()=>{ if(mine()) recEventAt=Date.now(); };
   r.onresult = e=>{
+    if(!mine()) return;
+    recEventAt = Date.now(); recNetErr = 0;
     if(!onHeard) return;
     recResults = e.results;
     const texts=[], top=[]; let fin=false, interim='';
@@ -1182,21 +1255,46 @@ function buildRec(){
     if(texts.length) onHeard(texts, fin, interim, top);
   };
   r.onerror = e=>{
+    if(!mine()) return;
     if(e.error==='not-allowed' || e.error==='service-not-allowed'){
-      recWant=false;
+      recWant=false; recWatch(false); micFix(false);
       toast('マイクが使えません。ブラウザのマイク許可を確認してください。');
       if(G.running) setMode('type');
     } else if(e.error==='audio-capture'){
-      recWant=false; toast('マイクが見つかりません。'); if(G.running) setMode('type');
+      /* 端末がマイクを手放した。作り直せば戻ることが多いので、すぐには諦めない。 */
+      recFail++;
+      if(recFail >= 3){
+        recWant=false; recWatch(false); micFix(false);
+        toast('マイクが見つかりません。'); if(G.running) setMode('type');
+      } else { micPrimed=false; micFix(true); }
     } else if(e.error==='network'){
-      recWant=false;
-      toast(location.protocol==='file:'
-        ? 'ファイルを直接開くと音声入力は使えません。https のURLから開いてください。'
-        : 'ネットワークに届きません。音声認識はインターネット接続が必要です。');
-      if(G.running) setMode('type');
+      /* 音声認識はサーバーに音を送って文字にしている。学校のWi-Fiでは
+         一瞬途切れることがあり、以前はその1回で音声入力を諦めていた。
+         数回までは黙って入れ直す。 */
+      if(location.protocol==='file:'){
+        recWant=false; recWatch(false);
+        toast('ファイルを直接開くと音声入力は使えません。https のURLから開いてください。');
+        if(G.running) setMode('type'); return;
+      }
+      recNetErr++;
+      if(recNetErr >= 6){
+        recWant=false; recWatch(false); micFix(false);
+        toast('ネットワークに届きません。音声認識はインターネット接続が必要です。');
+        if(G.running) setMode('type');
+      } else if(recNetErr >= 3) micFix(true);
     }
+    /* no-speech / aborted は正常の範囲。onend が来るので、そこで開き直す。 */
   };
-  r.onend = ()=>{ waveOn(false); if(recWant) setTimeout(()=>{ try{ rec.start(); }catch(_){ } }, 250); };
+  r.onend = ()=>{
+    if(!mine()) return;
+    recLive=false; waveOn(false);
+    if(!recWant) return;
+    setTimeout(()=>{
+      if(!recWant || !mine()) return;
+      recStartAt = Date.now();
+      try{ rec.start(); }catch(_){ recycleRec(); }   /* 同じ物で駄目なら作り直す */
+    }, 250);
+  };
   return r;
 }
 function primeMic(){
@@ -1213,16 +1311,40 @@ function primeMic(){
 }
 function startRec(){
   if(!SRC){ toast('このブラウザは音声入力に対応していません'); return false; }
-  if(!rec) rec = buildRec();
   recWant = true;
+  recWatch(true);
+  if(recLive) return true;                 /* すでに動いている */
+  if(!rec) rec = buildRec();
   try{ if(window.speechSynthesis && (speechSynthesis.speaking||speechSynthesis.pending)) speechSynthesis.cancel(); }catch(_){}
   setTimeout(()=>{
-    if(!recWant) return;
-    (function tryStart(n){ try{ rec.start(); }catch(e){ if(n>0&&recWant) setTimeout(()=>tryStart(n-1), 320); } })(3);
+    if(!recWant || recLive) return;
+    (function tryStart(n){
+      if(!recWant || recLive) return;
+      recStartAt = Date.now();
+      try{ rec.start(); }
+      catch(e){
+        if(n>0) setTimeout(()=>tryStart(n-1), 320);
+        else recycleRec();                 /* 3回だめなら、古い物を捨てて作り直す */
+      }
+    })(3);
   }, IS_IOS ? 240 : 0);
   return true;
 }
-function stopRec(){ recWant=false; try{ rec && rec.stop(); }catch(_){} waveOn(false); resetSpoken(); }
+function stopRec(){
+  recWant=false; recWatch(false); micFix(false); recDead=0;
+  try{ rec && rec.stop(); }catch(_){}
+  recLive=false; waveOn(false); resetSpoken();
+}
+/* 生徒が「タップで再開」を押したときの復帰。ここは本物のタップなので、
+   マイクの取り直しまで含めていちばん強い手を打てる。 */
+function fixMic(){
+  micFix(false);
+  recFail=0; recNetErr=0; recDead=0; micPrimed=false;
+  if(!(G.mode==='voice' && G.running)){ setMode('voice'); return; }
+  recWant=true;
+  primeMic().then(ok=>{ if(ok===false){ toast('マイクの許可が必要です'); return; }
+                        recycleRec(); recWatch(true); });
+}
 function say(word){
   if(!window.speechSynthesis) return;
   try{
@@ -1327,8 +1449,16 @@ function makeCode(){
   if(!NET.on()){ openHost(encodeGame({...cfg, seed:Math.floor(Math.random()*16)})); return; }
   const btn=$('#makeCode'); btn.disabled=true; btn.textContent='部屋を用意しています…';
   let settled=false;
+  /* 前に同じコードが使われていても、開いた時点で記録が残っていないようにする。
+     消えるのを待ちすぎないよう、1.2秒で見切って開く。 */
   const go = code=>{ if(settled) return; settled=true;
-    btn.disabled=false; btn.textContent='コードを作る'; openHost(code); };
+    btn.disabled=false; btn.textContent='コードを作る';
+    if(!NET.on()){ openHost(code); return; }
+    let opened=false;
+    const once = ()=>{ if(!opened){ opened=true; openHost(code); } };
+    setTimeout(once, 1200);
+    NET.del('rooms/'+code+'/teams').then(once).catch(once);
+  };
   setTimeout(()=>go(encodeGame({...cfg, seed:Math.floor(Math.random()*16)})), 5000);
   /* コードは設定から作られるので、同じ設定だと同じコードになる。
      まだ使われていない席（seed）を探してから部屋を開く。 */
@@ -1374,6 +1504,38 @@ function setHideRank(v){
   LB.el = {}; LB.val = {};
   renderLive(T.live);
 }
+/* ---------- 部屋の後片づけ ----------
+   コードは設定から作られるので、同じ設定で授業をすると同じコードが返ってくる。
+   以前はそのとき前回の記録が残ったままだったので、二つ手を打つ。
+     ・新しくコードを作ったら、その部屋の記録は必ず空にしてから開く
+     ・3時間さわられていない部屋は、次に先生が部屋を開いたときにまとめて消す
+   Realtime Database には「何時間で自動削除」の設定が無いので、
+   消すきっかけは「先生がゲームを作ったとき」になる。 */
+const ROOM_TTL = 3*3600e3;
+
+function roomLastAt(room){                     /* その部屋が最後に使われた時刻 */
+  let t = (room && room.info && +room.info.at) || 0;
+  const tm = room && room.teams;
+  if(tm) for(const k in tm){ const a = +((tm[k]||{}).at) || 0; if(a > t) t = a; }
+  return t;
+}
+function sweepRooms(){
+  if(!NET.on() || sweepRooms._done) return;    /* 1回ひらくあいだに1度でよい */
+  sweepRooms._done = true;
+  NET.get('rooms').then(all=>{
+    if(!all || typeof all !== 'object') return;
+    const now = Date.now(), mine = T.cfg && T.cfg.code;
+    let n = 0;
+    Object.keys(all).forEach(code=>{
+      if(code === mine) return;                          /* いま使っている部屋は触らない */
+      const last = roomLastAt(all[code]);
+      if(last && now - last < ROOM_TTL) return;          /* まだ新しい部屋は残す */
+      n++; NET.del('rooms/'+code).catch(()=>{});
+    });
+    if(n) try{ console.info('[こえたん] 古い部屋を '+n+' 件かたづけました'); }catch(_){}
+  }).catch(()=>{});
+}
+
 function startLive(){
   stopLive();
   LB.el = {}; LB.val = {}; T.hide = false;
@@ -1389,11 +1551,19 @@ function startLive(){
   }
   $('#liveReset').style.display='';
   setLiveState('poll');
-  NET.put('rooms/'+T.cfg.code+'/info',
-          {at:Date.now(), r:1, sec:T.cfg.roundSec}).catch(()=>setLiveState('ng'));
+  const beat = ()=> NET.put('rooms/'+T.cfg.code+'/info',
+                            {at:Date.now(), r:1, sec:T.cfg.roundSec});
+  beat().catch(()=>setLiveState('ng'));
+  /* 朝に部屋を用意して午後に使う、というときでも「使用中」でいられるように、
+     開いているあいだは2分ごとに時刻を更新する。これがないと、
+     他の先生の掃除に巻き込まれて記録が消える可能性がある。 */
+  clearInterval(T.beat);
+  T.beat = setInterval(()=>{ if(NET.on() && T.cfg) beat().catch(()=>{}); }, 120000);
   T.stop = NET.stream('rooms/'+T.cfg.code+'/teams', renderLive, setLiveState);
+  sweepRooms();
 }
-function stopLive(){ if(T.stop){ try{ T.stop(); }catch(_){} T.stop=null; } }
+function stopLive(){ clearInterval(T.beat); T.beat=0;
+  if(T.stop){ try{ T.stop(); }catch(_){} T.stop=null; } }
 function liveRows(){
   return Object.keys(T.live||{})
     .map(k=>({ id:k, ...(T.live[k]||{}) }))
@@ -2083,7 +2253,7 @@ function nextWord(){
   paintQuestion(row);
   paintSpeaker();
   /* お手本を鳴らすためにマイクを止めているので、ここで開き直す */
-  if(G.mode==='voice' && G.running && !recWant) startRec();
+  if(G.mode==='voice' && G.running && (!recWant || !recLive)) startRec();
   if(G.mode==='type'){ const el=$('#pType'); el.value=''; setTimeout(()=>el.focus(), 40); }
 }
 function paintQuestion(row){
@@ -2416,6 +2586,15 @@ if(hashCode.length===CODE_LEN && decodeGame(hashCode)){
   show('s-join');
 }
 window.addEventListener('pagehide', ()=>{ stopRec(); });
+/* スリープ・通知・アプリ切り替えのあとは、認識が黙って死んでいることが多い。
+   画面に戻った時点で開き直す。 */
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden) return;
+  if(!(G.running && G.mode==='voice')) return;
+  /* 「動いているつもり」でも当てにしない。戻ってきたら無条件で作り直す。 */
+  recWant = true; recWatch(true); recycleRec();
+});
+$('#pMicFix').onclick = fixMic;
 
 })();
 </script>
